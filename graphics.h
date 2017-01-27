@@ -15,6 +15,8 @@
 
 #include "axes.h"
 
+#include "stack.h"
+
 int graphics_init(void);
 int graphics_quit(void);
 
@@ -25,7 +27,7 @@ struct graphics_window
 
 	struct graphics_axes axes;
 
-	int shader_program;
+	struct stack graphs;
 };
 
 extern struct graphics_window *graphics_window_curr;

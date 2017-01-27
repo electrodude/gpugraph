@@ -96,7 +96,7 @@ static inline void stringbuf_storage_free(struct stringbuf *str)
 
 		default:
 #if STRINGBUF_DEBUG
-			fprintf(stderr, "stringbuf_storage_free(%p): unknown storage type %d, leaking %p!\n", str, str->storage, str->s)
+			fprintf(stderr, "stringbuf_storage_free(%p): unknown storage type %d, leaking %p!\n", str, str->storage, str->s);
 #endif
 			break;
 	}
@@ -264,7 +264,7 @@ void stringbuf_append(struct stringbuf *restrict str, const struct stringbuf *re
 	if (str2 == NULL) return;
 
 #if STRINGBUF_DEBUG
-	printf("append(\"%s\", \"%s\")\n", stringbuf_get(str), stringbuf_get(str));
+	fprintf(stderr, "append(\"%s\", \"%s\")\n", stringbuf_get(str), stringbuf_get(str2));
 #endif
 
 

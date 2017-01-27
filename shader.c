@@ -1,9 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define GL_GLEXT_PROTOTYPES
-#include <GL/gl.h>
-
 #include "stringbuf.h"
 
 #include "graphics.h"
@@ -64,7 +61,13 @@ int graphics_shader_program_dtor(struct graphics_shader_program *program)
 	}
 	*/
 
+	if (program->status == GRAPHICS_SHADER_PROGRAM_FAIL) return 1;
+
 	glDeleteProgram(program->program);
+	program->program = 0;
+	program->status = GRAPHICS_SHADER_PROGRAM_FAIL;
+
+	return 0;
 }
 
 int graphics_shader_add(struct graphics_shader_program *program, GLenum type, struct stringslice source)

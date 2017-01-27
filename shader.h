@@ -3,6 +3,7 @@
 
 #include "stringslice.h"
 
+#define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 
 struct graphics_shader_program

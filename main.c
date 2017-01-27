@@ -9,7 +9,7 @@
 
 #include "graphics.h"
 
-#include "shader.h"
+#include "controls.h"
 
 #include "axes.h"
 
@@ -82,20 +82,6 @@ int main(int argc, char **argv)
 
 	glfwSetWindowSizeCallback(win.nk.win, windowsize_callback);
 
-	struct graphics_shader_program shaders;
-	graphics_shader_program_new (&shaders);
-	graphics_shader_add_file    (&shaders, GL_VERTEX_SHADER  , "shader.v.glsl");
-	graphics_shader_add_file    (&shaders, GL_FRAGMENT_SHADER, "shader.f.glsl");
-	graphics_shader_program_link(&shaders);
-	if (shaders.status != GRAPHICS_SHADER_PROGRAM_LINKED) abort();
-	printf("location(origin) = %d\n", glGetUniformLocation(shaders.program, "origin"));
-	printf("location(scale) = %d\n", glGetUniformLocation(shaders.program, "scale"));
-	printf("location(grid_scale) = %d\n", glGetUniformLocation(shaders.program, "grid_scale"));
-	printf("location(grid_intensity) = %d\n", glGetUniformLocation(shaders.program, "grid_intensity"));
-	printf("location(plot_color) = %d\n", glGetUniformLocation(shaders.program, "plot_color"));
-	printf("location(time) = %d\n", glGetUniformLocation(shaders.program, "time"));
-	graphics_check_gl_error("post check link");
-
 	win.axes = (struct graphics_axes)
 	{
 		.xmid = 0.0, .ymid = 0.0,
@@ -107,33 +93,16 @@ int main(int argc, char **argv)
 	graphics_axes_new(&win.axes);
 	graphics_axes_recalculate(&win.axes);
 
-	struct graphics_graph_parameter params[4];
-	win.graph_params = params;
-	win.graph_params_n = 4;
-	char name[64];
-	for (size_t i = 0; i < 4; i++)
-	{
-		snprintf(name, 64, "Param %zd ", i);
-		graphics_graph_parameter_new_at(&win.graph_params[i], name, 2, 0.0f);
-	}
-
 	while (!glfwWindowShouldClose(win.nk.win))
 	{
 		nk_input_begin(&win.nk.ctx);
 		glfwPollEvents();
 		nk_input_end(&win.nk.ctx);
 
-		win.shader_program = shaders.program;
 		graphics_window_render(&win);
 	}
 
-	for (size_t i = 0; i < 4; i++)
-	{
-		graphics_graph_parameter_dtor(&win.graph_params[i]);
-	}
-
 	graphics_axes_dtor(&win.axes);
-	graphics_shader_program_dtor(&shaders);
 	graphics_window_dtor(&win);
 
 	graphics_quit();

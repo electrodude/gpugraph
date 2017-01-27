@@ -237,6 +237,7 @@ int stringbuf_file_write(const struct stringbuf *str, FILE *fp);
 
 
 // inline implementations of frequently called functions
+
 static inline void stringbuf_reserve(struct stringbuf *str, size_t len)
 {
 	size_t n = str->n + len;

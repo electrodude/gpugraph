@@ -3,9 +3,11 @@
 #include <math.h>
 #include <string.h>
 
-#include "graphics.h"
+#include "controls.h"
 
 #include "axes.h"
+
+#include "graphics.h"
 
 #define MAX_VERTEX_BUFFER 512 * 1024
 #define MAX_ELEMENT_BUFFER 128 * 1024
@@ -56,11 +58,21 @@ int graphics_window_init(struct graphics_window *win)
 	// load fonts here
 	nk_glfw3_font_stash_end(&win->nk);
 
+	stack_new_at(&win->graphs);
+
 	return 0;
 }
 
 int graphics_window_dtor(struct graphics_window *win)
 {
+	STACK_FOREACH(i, &win->graphs)
+	{
+		struct graphics_graph *graph = win->graphs.s[i];
+		if (graph == NULL) continue;
+
+		graphics_graph_free(graph);
+	}
+	stack_dtor(&win->graphs);
 	graphics_window_select(win);
 
 	nk_glfw3_destroy(&win->nk);
@@ -95,27 +107,27 @@ int graphics_window_render(struct graphics_window *win)
 	glOrtho(0.0f, aspect_ratio, 1.0f, 0.0f, -1.0f, 1.0f);
 	graphics_check_gl_error("gl modelview");
 
-	static int count = 4;
-	static struct nk_color plot_color = {.r = 255, .g = 255, .b = 255, .a = 255};
-
 	static float time_old = 0.0;
 	float time_new = glfwGetTime();
 	float dt = time_new - time_old;
-	for (size_t i = 0; i < win->graph_params_n; i++)
-	{
-		graphics_graph_parameter_update(&win->graph_params[i], dt);
-	}
 	time_old = time_new;
 
-	graphics_check_gl_error("pre glUseProgram");
-	glUseProgram(win->shader_program);
-	graphics_check_gl_error("post glUseProgram");
+	struct nk_context *ctx = &win->nk.ctx;
 
-	float plot_color_rgba[4];
-	nk_color_fv(plot_color_rgba, plot_color);
-	glUniform4fv(2, 1, plot_color_rgba);
-	glUniform4f(3, win->graph_params[0].values[0], win->graph_params[1].values[0], win->graph_params[2].values[0], win->graph_params[3].values[0]);
-	graphics_axes_shader_render(&win->axes);
+	STACK_FOREACH(i, &win->graphs)
+	{
+		struct graphics_graph *graph = win->graphs.s[i];
+		if (graph == NULL) continue;
+		if (!graph->valid)
+		{
+			graphics_graph_free(graph);
+			win->graphs.s[i] = NULL;
+		}
+
+		graphics_graph_draw(graph, ctx);
+		graphics_graph_update(graph, dt);
+		graphics_graph_render(graph, win);
+	}
 
 	graphics_axes_render(&win->axes);
 
@@ -126,13 +138,20 @@ int graphics_window_render(struct graphics_window *win)
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
 
-	struct nk_context *ctx = &win->nk.ctx;
-
-	if (nk_begin(ctx, "Settings", nk_rect(50, 50, 230, 250),
-	             NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|
+	if (nk_begin(ctx, "Settings", nk_rect(0, 0, 230, 250),
+	             NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|
 	             NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE))
 	{
-		nk_layout_row_static(ctx, 30, 80, 1);
+		nk_layout_row_static(ctx, 30, 80, 2);
+		if (nk_button_label(ctx, "New Graph"))
+		{
+			struct graphics_graph *graph = graphics_graph_new();
+			graph->color[0] = 1.0f;
+			graph->color[1] = 1.0f;
+			graph->color[2] = 1.0f;
+			graph->color[3] = 1.0f;
+			stack_push(&win->graphs, graph);
+		}
 		if (nk_button_label(ctx, "Quit"))
 		{
 			fprintf(stdout, "quit button pressed\n");
@@ -150,49 +169,19 @@ int graphics_window_render(struct graphics_window *win)
 			graphics_axes_recalculate(&win->axes);
 		}
 
-		/*
+		nk_layout_row_dynamic(ctx, 20, 1);
+		nk_label(ctx, "Background Color:", NK_TEXT_LEFT);
 		nk_layout_row_dynamic(ctx, 25, 1);
-		nk_property_int(ctx, "Count:", 3, &count, 50, 1, 1);
-		nk_slider_int(ctx, 3, &count, 50, 1);
-		*/
-
-		for (size_t i = 0; i < win->graph_params_n; i++)
+		if (nk_combo_begin_color(ctx, win->background, nk_vec2(nk_widget_width(ctx),400)))
 		{
-			graphics_graph_parameter_draw(&win->graph_params[i], ctx);
-		}
-
-		if (nk_tree_push(ctx, NK_TREE_TAB, "Colors", NK_MINIMIZED))
-		{
-			nk_layout_row_dynamic(ctx, 20, 1);
-			nk_label(ctx, "plot color:", NK_TEXT_LEFT);
+			nk_layout_row_dynamic(ctx, 120, 1);
+			win->background = nk_color_picker(ctx, win->background, NK_RGBA);
 			nk_layout_row_dynamic(ctx, 25, 1);
-			if (nk_combo_begin_color(ctx, plot_color, nk_vec2(nk_widget_width(ctx),400)))
-			{
-				nk_layout_row_dynamic(ctx, 120, 1);
-				plot_color = nk_color_picker(ctx, plot_color, NK_RGBA);
-				nk_layout_row_dynamic(ctx, 25, 1);
-				plot_color.r = (nk_byte)nk_propertyi(ctx, "#R:", 0, plot_color.r, 255, 1,1);
-				plot_color.g = (nk_byte)nk_propertyi(ctx, "#G:", 0, plot_color.g, 255, 1,1);
-				plot_color.b = (nk_byte)nk_propertyi(ctx, "#B:", 0, plot_color.b, 255, 1,1);
-				plot_color.a = (nk_byte)nk_propertyi(ctx, "#A:", 0, plot_color.a, 255, 1,1);
-				nk_combo_end(ctx);
-			}
-
-			nk_layout_row_dynamic(ctx, 20, 1);
-			nk_label(ctx, "background:", NK_TEXT_LEFT);
-			nk_layout_row_dynamic(ctx, 25, 1);
-			if (nk_combo_begin_color(ctx, win->background, nk_vec2(nk_widget_width(ctx),400)))
-			{
-				nk_layout_row_dynamic(ctx, 120, 1);
-				win->background = nk_color_picker(ctx, win->background, NK_RGBA);
-				nk_layout_row_dynamic(ctx, 25, 1);
-				win->background.r = (nk_byte)nk_propertyi(ctx, "#R:", 0, win->background.r, 255, 1,1);
-				win->background.g = (nk_byte)nk_propertyi(ctx, "#G:", 0, win->background.g, 255, 1,1);
-				win->background.b = (nk_byte)nk_propertyi(ctx, "#B:", 0, win->background.b, 255, 1,1);
-				win->background.a = (nk_byte)nk_propertyi(ctx, "#A:", 0, win->background.a, 255, 1,1);
-				nk_combo_end(ctx);
-			}
-			nk_tree_pop(ctx);
+			win->background.r = (nk_byte)nk_propertyi(ctx, "#R:", 0, win->background.r, 255, 1,1);
+			win->background.g = (nk_byte)nk_propertyi(ctx, "#G:", 0, win->background.g, 255, 1,1);
+			win->background.b = (nk_byte)nk_propertyi(ctx, "#B:", 0, win->background.b, 255, 1,1);
+			win->background.a = (nk_byte)nk_propertyi(ctx, "#A:", 0, win->background.a, 255, 1,1);
+			nk_combo_end(ctx);
 		}
 	}
 	nk_end(ctx);
