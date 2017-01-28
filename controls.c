@@ -77,20 +77,28 @@ static size_t graphics_graph_id_next = 0;
 
 struct graphics_graph *graphics_graph_new_at(struct graphics_graph *graph)
 {
-	stringbuf_new_prealloc_at(&graph->eqn, 512);
-	stringbuf_new_prealloc_at(&graph->name, 32);
 	stack_new_at(&graph->params);
 
 	graphics_shader_program_new(&graph->eqn_shader);
 
+	stringbuf_new_prealloc_at(&graph->eqn, 512);
+	stringbuf_new_prealloc_at(&graph->name, 32);
+
+	graph->prev = NULL;
+	graph->next = NULL;
+
 	graph->id = graphics_graph_id_next++;
 
-	graph->valid = 1;
+	graph->enable = 1;
+	graph->animate = 1;
+
+	graph->action = GRAPHICS_GRAPH_ACTION_NONE;
+
 
 	stringbuf_puts(&graph->name, "Graph ");
 	stringbuf_putnum(&graph->name, 10, graph->id);
 
-	stringbuf_puts(&graph->eqn, "float x = pos.x;\nfloat y = pos.y;\ngl_FragColor = eqn(x*x + y*y - 1.0);\n");
+	stringbuf_puts(&graph->eqn, "float x = pos.x;\nfloat y = pos.y;\ngl_FragColor = eqn(x*x + y*y - 1.0);\n"); // circle of radius 1.0
 
 	graphics_graph_setup(graph);
 
@@ -99,8 +107,7 @@ struct graphics_graph *graphics_graph_new_at(struct graphics_graph *graph)
 
 void graphics_graph_dtor(struct graphics_graph *graph)
 {
-	if (!graph->valid) return;
-	graph->valid = 0;
+	LL_REMOVE(graph, prev, next);
 
 	STACK_FOREACH(i, &graph->params)
 	{
@@ -138,6 +145,7 @@ void graphics_graph_setup(struct graphics_graph *graph)
 
 		uniform vec4 plot_color;
 	));
+	stringbuf_putc(&frag_shader, '\n');
 	STACK_FOREACH(i, &graph->params)
 	{
 		struct graphics_graph_parameter *param = graph->params.s[i];
@@ -171,6 +179,7 @@ void graphics_graph_setup(struct graphics_graph *graph)
 		{
 			vec2 pos = gl_TexCoord[0].st;
 	));
+	stringbuf_putc(&frag_shader, '\n');
 	stringbuf_append(&frag_shader, &graph->eqn);
 	stringbuf_puts(&frag_shader, GLSL(
 		}
@@ -178,16 +187,6 @@ void graphics_graph_setup(struct graphics_graph *graph)
 
 	puts("new graph fragment shader:");
 	puts(stringbuf_get(&frag_shader));
-#if 0
-	for (size_t i = 0; i < frag_shader.n; i++)
-	{
-		unsigned char c = frag_shader.s[i];
-		if (!isprint(c) && !isspace(c))
-		{
-			printf("frag_shader[%zd] = %02hhx (%c)\n", i, c, c);
-		}
-	}
-#endif
 
 	graphics_shader_program_dtor(&graph->eqn_shader);
 	graphics_shader_program_new (&graph->eqn_shader);
@@ -247,7 +246,7 @@ void graphics_graph_setup(struct graphics_graph *graph)
 
 void graphics_graph_render(struct graphics_graph *graph, struct graphics_window *win)
 {
-	if (!graph->valid) return;
+	if (!graph->enable) return;
 	if (graph->eqn_shader.status != GRAPHICS_SHADER_PROGRAM_LINKED) return;
 
 	glUseProgram(graph->eqn_shader.program);
@@ -283,7 +282,8 @@ void graphics_graph_render(struct graphics_graph *graph, struct graphics_window 
 
 void graphics_graph_update(struct graphics_graph *graph, float dt)
 {
-	if (!graph->valid) return;
+	if (!graph->animate) return;
+
 	STACK_FOREACH(i, &graph->params)
 	{
 		struct graphics_graph_parameter *param = graph->params.s[i];
@@ -295,26 +295,36 @@ void graphics_graph_update(struct graphics_graph *graph, float dt)
 
 void graphics_graph_draw(struct graphics_graph *graph, struct nk_context *ctx)
 {
-	if (!graph->valid) return;
-
 	char id[64];
 	snprintf(id, 64, "%zx", graph->id);
-	if (nk_begin_titled(ctx, id, stringbuf_get(&graph->name), nk_rect(70, 70, 360, 360),
+	if (nk_begin_titled(ctx, id, stringbuf_get(&graph->name), nk_rect(70, 70, 360, 375),
 	             NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|
 	             NK_WINDOW_MINIMIZABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE))
 	{
 		if (nk_tree_push(ctx, NK_TREE_NODE, "Setup", NK_MAXIMIZED))
 		{
+			nk_layout_row_dynamic(ctx, 25, 4);
+			nk_checkbox_label(ctx, "Enable", &graph->enable);
+			nk_checkbox_label(ctx, "Animate", &graph->animate);
+			if (nk_button_label(ctx, "Up"))
 			{
-				stringbuf_reserve(&graph->name, graph->name.n);
-				nk_layout_row_dynamic(ctx, 25, 1);
-				int n = graph->name.n-1;
-				nk_edit_string(ctx, NK_EDIT_FIELD, graph->name.s, &n, graph->name.maxn-1, nk_filter_default);
-				graph->name.n = n+1;
+				graph->action = GRAPHICS_GRAPH_ACTION_MOVE_UP;
+			}
+			if (nk_button_label(ctx, "Down"))
+			{
+				graph->action = GRAPHICS_GRAPH_ACTION_MOVE_DOWN;
 			}
 
 			{
-				struct nk_color plot_color = nk_rgb_fv(graph->color);
+				stringbuf_reserve(&graph->name, graph->name.n);
+				nk_layout_row_dynamic(ctx, 25, 1);
+				int n = graph->name.n;
+				nk_edit_string(ctx, NK_EDIT_FIELD, graph->name.s, &n, graph->name.maxn-1, nk_filter_default);
+				graph->name.n = n;
+			}
+
+			{
+				struct nk_color plot_color = nk_rgba_fv(graph->color);
 				nk_layout_row_dynamic(ctx, 25, 1);
 				if (nk_combo_begin_color(ctx, plot_color, nk_vec2(nk_widget_width(ctx),400)))
 				{
@@ -368,7 +378,7 @@ void graphics_graph_draw(struct graphics_graph *graph, struct nk_context *ctx)
 			nk_layout_row_dynamic(ctx, 25, 1);
 			if (nk_button_label(ctx, "New Param"))
 			{
-				stack_push(&graph->params, graphics_graph_parameter_new("param", 2, 0.0));
+				stack_push(&graph->params, graphics_graph_parameter_new("t", 2, 0.0));
 			}
 
 			nk_tree_pop(ctx);
@@ -386,6 +396,6 @@ void graphics_graph_draw(struct graphics_graph *graph, struct nk_context *ctx)
 
 	if (nk_window_is_closed(ctx, id))
 	{
-		graphics_graph_dtor(graph);
+		graph->action = GRAPHICS_GRAPH_ACTION_CLOSE;
 	}
 }

@@ -69,7 +69,7 @@ int main(int argc, char **argv)
 	{
 		.nk =
 		{
-			.width = 600, .height = 600,
+			.width = 800, .height = 600,
 			.glfw_key_callback = key_callback,
 			.glfw_char_callback = char_callback,
 			.glfw_mousebutton_callback = mousebutton_callback,
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
 		},
 		.background = nk_rgb(0, 0, 0)
 	};
-	graphics_window_init(&win);
+	graphics_window_init(&win, "igraph");
 
 	glfwSetWindowSizeCallback(win.nk.win, windowsize_callback);
 

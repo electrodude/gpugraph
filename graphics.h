@@ -15,7 +15,7 @@
 
 #include "axes.h"
 
-#include "stack.h"
+#include "controls.h"
 
 int graphics_init(void);
 int graphics_quit(void);
@@ -27,12 +27,12 @@ struct graphics_window
 
 	struct graphics_axes axes;
 
-	struct stack graphs;
+	struct graphics_graph graph_list;
 };
 
 extern struct graphics_window *graphics_window_curr;
 
-int graphics_window_init(struct graphics_window *win);
+int graphics_window_init(struct graphics_window *win, const char *title);
 int graphics_window_dtor(struct graphics_window *win);
 
 static inline void graphics_window_select(struct graphics_window *win);
@@ -56,6 +56,7 @@ static inline void graphics_check_gl_error(const char *msg)
 {
 	for (GLenum glerr = glGetError(); glerr; glerr = glGetError())
 	{
+		// We're just ignoring all GL errors.  Isn't it lovely?
 		//fprintf(stderr, "%s: 0x%04x\n", msg, glerr);
 		//abort();
 	}

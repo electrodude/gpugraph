@@ -6,6 +6,21 @@
 
 #include "shader.h"
 
+#define LL_INSERT_BEFORE(_chain, _node, prev, next) do { \
+	__typeof__(_chain) chain = (_chain); \
+	__typeof__(_node) node = (_node); \
+	(node )->next       = (chain); \
+	(node )->prev       = (chain)->prev; \
+	(chain)->prev->next = (node); \
+	(chain)->prev       = (node); \
+} while (0)
+#define LL_REMOVE(_node, prev, next) do { \
+	__typeof__(_node) node = (_node); \
+	(node)->next->prev = (node)->prev; \
+	(node)->prev->next = (node)->next; \
+} while (0)
+
+
 struct nk_context;      // from nuklear.h
 struct graphics_window; // from graphics.h
 
@@ -26,6 +41,14 @@ void graphics_graph_parameter_free(struct graphics_graph_parameter *param);
 void graphics_graph_parameter_update(struct graphics_graph_parameter *param, float dt);
 void graphics_graph_parameter_draw(struct graphics_graph_parameter *param, struct nk_context *ctx);
 
+enum graphics_graph_action
+{
+	GRAPHICS_GRAPH_ACTION_NONE = 0,
+	GRAPHICS_GRAPH_ACTION_CLOSE,
+	GRAPHICS_GRAPH_ACTION_MOVE_UP,
+	GRAPHICS_GRAPH_ACTION_MOVE_DOWN,
+};
+
 struct graphics_graph
 {
 	struct stack params;
@@ -38,11 +61,17 @@ struct graphics_graph
 	struct stringbuf eqn;
 	struct stringbuf name;
 
+	struct graphics_graph *prev;
+	struct graphics_graph *next;
+
 	size_t id;
 
 	float color[4];
 
-	int valid : 1;
+	int enable;
+	int animate;
+
+	enum graphics_graph_action action;
 };
 
 struct nk_context;

@@ -40,7 +40,7 @@ struct nk_glfw {
     void (*glfw_scroll_callback)(struct nk_glfw *win, double xoff, double yoff);
 };
 
-NK_API struct nk_context*   nk_glfw3_new(struct nk_glfw *glfw);
+NK_API struct nk_context   *nk_glfw3_new(struct nk_glfw *glfw, const char *title);
 NK_API void                 nk_glfw3_destroy(struct nk_glfw *glfw);
 
 NK_API void                 nk_glfw3_font_stash_begin(struct nk_glfw *glfw, struct nk_font_atlas **atlas);
@@ -224,12 +224,9 @@ nk_glfw3_key_callback(GLFWwindow *win, int key, int scancode, int action, int mo
             case GLFW_KEY_RIGHT_CONTROL: nk_input_key(ctx, NK_KEY_CTRL           , down); break;
 
         }
-        nk_input_key(ctx, NK_KEY_COPY, 0);
-        nk_input_key(ctx, NK_KEY_PASTE, 0);
-        nk_input_key(ctx, NK_KEY_CUT, 0);
-        nk_input_key(ctx, NK_KEY_SHIFT, 0);
     } else {
         switch (key) {
+            case GLFW_KEY_A        : nk_input_key(ctx, NK_KEY_TEXT_SELECT_ALL, down); break;
             case GLFW_KEY_C        : nk_input_key(ctx, NK_KEY_COPY           , down); break;
             case GLFW_KEY_V        : nk_input_key(ctx, NK_KEY_PASTE          , down); break;
             case GLFW_KEY_X        : nk_input_key(ctx, NK_KEY_CUT            , down); break;
@@ -251,7 +248,10 @@ nk_glfw3_char_callback(GLFWwindow *win, unsigned int codepoint)
     {
         glfw->glfw_char_callback(glfw, codepoint);
     }
-    nk_input_unicode(&glfw->ctx, codepoint);
+    if (codepoint < 0x10FFFF)
+    {
+        nk_input_unicode(&glfw->ctx, codepoint);
+    }
 }
 
 NK_API void
@@ -334,9 +334,9 @@ nk_glfw3_clipboard_copy(nk_handle usr, const char *text, int len)
 }
 
 NK_API struct nk_context*
-nk_glfw3_new(struct nk_glfw *glfw)
+nk_glfw3_new(struct nk_glfw *glfw, const char *title)
 {
-    GLFWwindow *win = glfwCreateWindow(glfw->width, glfw->height, "igraph", NULL, NULL);
+    GLFWwindow *win = glfwCreateWindow(glfw->width, glfw->height, title, NULL, NULL);
 
     if (win == NULL)
     {

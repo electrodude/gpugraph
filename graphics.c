@@ -47,9 +47,9 @@ int graphics_quit(void)
 
 struct graphics_window *graphics_window_curr = NULL;
 
-int graphics_window_init(struct graphics_window *win)
+int graphics_window_init(struct graphics_window *win, const char *title)
 {
-	struct nk_context *ctx = nk_glfw3_new(&win->nk);
+	struct nk_context *ctx = nk_glfw3_new(&win->nk, title);
 
 	win->nk.userdata = nk_handle_ptr(win);
 
@@ -58,21 +58,22 @@ int graphics_window_init(struct graphics_window *win)
 	// load fonts here
 	nk_glfw3_font_stash_end(&win->nk);
 
-	stack_new_at(&win->graphs);
+	win->graph_list.prev = &win->graph_list;
+	win->graph_list.next = &win->graph_list;
 
 	return 0;
 }
 
 int graphics_window_dtor(struct graphics_window *win)
 {
-	STACK_FOREACH(i, &win->graphs)
+	struct graphics_graph *prev = NULL;
+	for (struct graphics_graph *graph = win->graph_list.next; graph != &win->graph_list; graph = graph->next)
 	{
-		struct graphics_graph *graph = win->graphs.s[i];
-		if (graph == NULL) continue;
-
-		graphics_graph_free(graph);
+		if (prev != NULL) graphics_graph_free(prev);
+		prev = graph;
 	}
-	stack_dtor(&win->graphs);
+	if (prev != NULL) graphics_graph_free(prev);
+
 	graphics_window_select(win);
 
 	nk_glfw3_destroy(&win->nk);
@@ -114,19 +115,49 @@ int graphics_window_render(struct graphics_window *win)
 
 	struct nk_context *ctx = &win->nk.ctx;
 
-	STACK_FOREACH(i, &win->graphs)
+	for (struct graphics_graph *graph = win->graph_list.next; graph != &win->graph_list; graph = graph->next)
 	{
-		struct graphics_graph *graph = win->graphs.s[i];
-		if (graph == NULL) continue;
-		if (!graph->valid)
-		{
-			graphics_graph_free(graph);
-			win->graphs.s[i] = NULL;
-		}
-
 		graphics_graph_draw(graph, ctx);
 		graphics_graph_update(graph, dt);
 		graphics_graph_render(graph, win);
+	}
+
+	struct graphics_graph *graph_freeme = NULL;
+	for (struct graphics_graph *graph = win->graph_list.next; graph != &win->graph_list; graph = graph->next)
+	{
+		if (graph_freeme != NULL)
+		{
+			graphics_graph_free(graph_freeme);
+			graph_freeme = NULL;
+		}
+		enum graphics_graph_action action = graph->action;
+		graph->action = GRAPHICS_GRAPH_ACTION_NONE;
+		switch (action)
+		{
+			case GRAPHICS_GRAPH_ACTION_MOVE_UP:
+				if (graph->next == &win->graph_list) break; // already at top; do nothing
+				LL_REMOVE(graph, prev, next); // temporarily remove node from list
+				LL_INSERT_BEFORE(graph->next->next, graph, prev, next); // and reinsert it below the one below this one
+				graph = graph->prev->prev; // go back to get the one we moved before this one without processing
+				// this one gets processed again after the previous one, but it's fine
+				break;
+
+			case GRAPHICS_GRAPH_ACTION_MOVE_DOWN:
+				if (graph->prev == &win->graph_list) break; // already at bottom; do nothing
+				LL_REMOVE(graph, prev, next); // temporarily remove node from list
+				LL_INSERT_BEFORE(graph->prev, graph, prev, next); // and reinsert it above the one above this one
+				// repeats the one that used to come before this one, but it's fine
+				break;
+
+			case GRAPHICS_GRAPH_ACTION_CLOSE:
+				graph_freeme = graph;
+				break;
+		}
+	}
+	if (graph_freeme != NULL)
+	{
+		graphics_graph_free(graph_freeme);
+		graph_freeme = NULL;
 	}
 
 	graphics_axes_render(&win->axes);
@@ -138,11 +169,11 @@ int graphics_window_render(struct graphics_window *win)
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
 
-	if (nk_begin(ctx, "Settings", nk_rect(0, 0, 230, 250),
+	if (nk_begin(ctx, "Settings", nk_rect(0, 0, 230, 200),
 	             NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|
 	             NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE))
 	{
-		nk_layout_row_static(ctx, 30, 80, 2);
+		nk_layout_row_dynamic(ctx, 30, 1);
 		if (nk_button_label(ctx, "New Graph"))
 		{
 			struct graphics_graph *graph = graphics_graph_new();
@@ -150,12 +181,7 @@ int graphics_window_render(struct graphics_window *win)
 			graph->color[1] = 1.0f;
 			graph->color[2] = 1.0f;
 			graph->color[3] = 1.0f;
-			stack_push(&win->graphs, graph);
-		}
-		if (nk_button_label(ctx, "Quit"))
-		{
-			fprintf(stdout, "quit button pressed\n");
-			glfwSetWindowShouldClose(win->nk.win, 1);
+			LL_INSERT_BEFORE(&win->graph_list, graph, prev, next);
 		}
 
 		static int grid_base = 10;
