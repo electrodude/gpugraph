@@ -35,9 +35,9 @@ struct stringbuf
 // you can append and such to this because realloc(NULL, size) === malloc(size)
 #define STRINGBUF_EMPTY ((struct stringbuf){0})
 
-#define STRINGBUF_ON_STACK(_name, _len) char _name##_stringbuf_data[_len]; struct stringbuf _name = {.s=_name##_stringbuf_data, .n=0, .maxn = _len, .storage = STRINGBUF_STORAGE_UNOWNED};
-//#define STRINGBUF_ON_STACK2(_name, _len) char _name##_stringbuf_data[_len]; struct stringbuf _name = {.s=_name##_stringbuf_data, .n=0, .maxn = _len, .storage = STRINGBUF_STORAGE_UNOWNED};
-//#define STRINGBUF_ON_STACK(_name, _len) STRINGBUF_ON_STACK2(_name, 8)
+#define STRINGBUF_ON_STACK(_name, _len) \
+	char _name##_stringbuf_data[_len]; \
+	struct stringbuf _name = {.s=_name##_stringbuf_data, .n=0, .maxn = _len, .storage = STRINGBUF_STORAGE_UNOWNED};
 
 struct stringbuf *stringbuf_alloc_raw(void);
 

@@ -6,40 +6,44 @@
 
 #include "shader.h"
 
-#define LL_INSERT_BEFORE(_chain, _node, prev, next) do { \
-	__typeof__(_chain) chain = (_chain); \
-	__typeof__(_node) node = (_node); \
-	(node )->next       = (chain); \
-	(node )->prev       = (chain)->prev; \
-	(chain)->prev->next = (node); \
-	(chain)->prev       = (node); \
-} while (0)
-#define LL_REMOVE(_node, prev, next) do { \
-	__typeof__(_node) node = (_node); \
-	(node)->next->prev = (node)->prev; \
-	(node)->prev->next = (node)->next; \
-} while (0)
-
-
 struct nk_context;      // from nuklear.h
+struct nk_color;        // from nuklear.h
 struct graphics_window; // from graphics.h
+
+// is this OK? struct nk_color isn't defined yet
+struct nk_color graphics_color_picker(struct nk_context *ctx, struct nk_color color, int *hsv);
 
 struct graphics_graph_parameter
 {
 	size_t count;
 	float *values;
+
+	int id;
+	size_t refs;
+};
+
+extern struct stack graphics_graph_parameters;
+
+struct graphics_graph_parameter *graphics_graph_parameter_new(size_t count);
+void graphics_graph_parameter_ref(struct graphics_graph_parameter **param_p, struct graphics_graph_parameter *param);
+void graphics_graph_parameter_unref(struct graphics_graph_parameter *param);
+
+int graphics_graph_parameter_update_all(float dt);
+
+struct graphics_graph_parameter_view
+{
+	struct graphics_graph_parameter *param;
 	GLint uniform;
 
 	struct stringbuf name;
 };
 
-#define graphics_graph_parameter_new(name, count, value) (graphics_graph_parameter_new_at(malloc(sizeof(struct graphics_graph_parameter)), name, count, value))
-struct graphics_graph_parameter *graphics_graph_parameter_new_at(struct graphics_graph_parameter *param, const char *name, size_t count, float value);
-void graphics_graph_parameter_dtor(struct graphics_graph_parameter *param);
-void graphics_graph_parameter_free(struct graphics_graph_parameter *param);
+#define graphics_graph_parameter_view_new(name, param) (graphics_graph_parameter_view_new_at(malloc(sizeof(struct graphics_graph_parameter_view)), name, param))
+struct graphics_graph_parameter_view *graphics_graph_parameter_view_new_at(struct graphics_graph_parameter_view *view, const char *name, struct graphics_graph_parameter *param);
+int graphics_graph_parameter_view_dtor(struct graphics_graph_parameter_view *view);
+void graphics_graph_parameter_view_free(struct graphics_graph_parameter_view *view);
 
-void graphics_graph_parameter_update(struct graphics_graph_parameter *param, float dt);
-void graphics_graph_parameter_draw(struct graphics_graph_parameter *param, struct nk_context *ctx);
+void graphics_graph_parameter_view_draw(struct graphics_graph_parameter_view *view, struct nk_context *ctx);
 
 enum graphics_graph_action
 {
@@ -63,13 +67,14 @@ struct graphics_graph
 
 	struct graphics_graph *prev;
 	struct graphics_graph *next;
-
-	size_t id;
+	int id;
 
 	float color[4];
 
 	int enable;
 	int animate;
+
+	int hsv;
 
 	enum graphics_graph_action action;
 };
@@ -83,7 +88,7 @@ void graphics_graph_free(struct graphics_graph *graph);
 
 void graphics_graph_setup(struct graphics_graph *graph);
 void graphics_graph_render(struct graphics_graph *graph, struct graphics_window *win);
-void graphics_graph_update(struct graphics_graph *graph, float dt);
+int graphics_graph_update(struct graphics_graph *graph);
 void graphics_graph_draw(struct graphics_graph *graph, struct nk_context *ctx);
 
 #endif /* CONTROLS_H */

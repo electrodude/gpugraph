@@ -19,10 +19,15 @@
 #include "nuklear/nuklear.h"
 #include "nuklear_glfw_gl2.h"
 
+#include "linked_list.h"
+
 static void gr_error_callback(int error, const char *description)
 {
 	fputs(description, stderr);
 }
+
+struct graphics_window *graphics_window_curr = NULL;
+struct graphics_window graphics_window_list;
 
 int graphics_init(void)
 {
@@ -35,17 +40,22 @@ int graphics_init(void)
 		return -1;
 	}
 
+	LL_INIT(&graphics_window_list);
+	graphics_window_list.id = -1;
+
 	return 0;
 }
 
 int graphics_quit(void)
 {
+	graphics_window_curr = NULL;
+
 	glfwTerminate();
 
 	return 0;
 }
 
-struct graphics_window *graphics_window_curr = NULL;
+static int win_id_next = 0;
 
 int graphics_window_init(struct graphics_window *win, const char *title)
 {
@@ -53,13 +63,19 @@ int graphics_window_init(struct graphics_window *win, const char *title)
 
 	win->nk.userdata = nk_handle_ptr(win);
 
+	stringbuf_new_str_at(&win->title, title);
+
 	struct nk_font_atlas *atlas;
 	nk_glfw3_font_stash_begin(&win->nk, &atlas);
 	// load fonts here
 	nk_glfw3_font_stash_end(&win->nk);
 
-	win->graph_list.prev = &win->graph_list;
-	win->graph_list.next = &win->graph_list;
+	LL_INIT(&win->graph_list);
+	win->graph_list.id = -1;
+
+	win->id = win_id_next++;
+
+	LL_INSERT_BEFORE(&graphics_window_list, win, prev, next);
 
 	return 0;
 }
@@ -67,7 +83,7 @@ int graphics_window_init(struct graphics_window *win, const char *title)
 int graphics_window_dtor(struct graphics_window *win)
 {
 	struct graphics_graph *prev = NULL;
-	for (struct graphics_graph *graph = win->graph_list.next; graph != &win->graph_list; graph = graph->next)
+	LL_FOR_ALL(graph, &win->graph_list, prev, next)
 	{
 		if (prev != NULL) graphics_graph_free(prev);
 		prev = graph;
@@ -78,7 +94,14 @@ int graphics_window_dtor(struct graphics_window *win)
 
 	nk_glfw3_destroy(&win->nk);
 
+	stringbuf_dtor(&win->title);
+
 	return 0;
+}
+
+void graphics_window_update_title(struct graphics_window *win)
+{
+	glfwSetWindowTitle(win->nk.win, stringbuf_get(&win->title));
 }
 
 int graphics_window_render(struct graphics_window *win)
@@ -108,22 +131,19 @@ int graphics_window_render(struct graphics_window *win)
 	glOrtho(0.0f, aspect_ratio, 1.0f, 0.0f, -1.0f, 1.0f);
 	graphics_check_gl_error("gl modelview");
 
-	static float time_old = 0.0;
-	float time_new = glfwGetTime();
-	float dt = time_new - time_old;
-	time_old = time_new;
-
 	struct nk_context *ctx = &win->nk.ctx;
 
-	for (struct graphics_graph *graph = win->graph_list.next; graph != &win->graph_list; graph = graph->next)
+	int animating = 0;
+
+	LL_FOR_ALL(graph, &win->graph_list, prev, next)
 	{
 		graphics_graph_draw(graph, ctx);
-		graphics_graph_update(graph, dt);
+		if (graphics_graph_update(graph)) animating = 1;
 		graphics_graph_render(graph, win);
 	}
 
 	struct graphics_graph *graph_freeme = NULL;
-	for (struct graphics_graph *graph = win->graph_list.next; graph != &win->graph_list; graph = graph->next)
+	LL_FOR_ALL(graph, &win->graph_list, prev, next)
 	{
 		if (graph_freeme != NULL)
 		{
@@ -173,7 +193,7 @@ int graphics_window_render(struct graphics_window *win)
 	             NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|
 	             NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE))
 	{
-		nk_layout_row_dynamic(ctx, 30, 1);
+		nk_layout_row_dynamic(ctx, 25, 2);
 		if (nk_button_label(ctx, "New Graph"))
 		{
 			struct graphics_graph *graph = graphics_graph_new();
@@ -183,9 +203,27 @@ int graphics_window_render(struct graphics_window *win)
 			graph->color[3] = 1.0f;
 			LL_INSERT_BEFORE(&win->graph_list, graph, prev, next);
 		}
+		if (nk_button_label(ctx, "New Window"))
+		{
+			struct graphics_window *graph_window_new(void); // from main.c
+			struct graphics_window *win2 = graph_window_new();
+		}
+
+		{
+			stringbuf_reserve(&win->title, win->title.n);
+			nk_layout_row_dynamic(ctx, 20, 1);
+			int n = win->title.n;
+			int updated = nk_edit_string(ctx, NK_EDIT_FIELD, win->title.s, &n, win->title.maxn-1, nk_filter_default);
+			win->title.n = n;
+
+			if (updated)
+			{
+				graphics_window_update_title(win);
+			}
+		}
 
 		static int grid_base = 10;
-		nk_layout_row_dynamic(ctx, 25, 1);
+		nk_layout_row_dynamic(ctx, 20, 1);
 		nk_property_int(ctx, "Grid Base:", 2, &grid_base, 100, 1, 1);
 		nk_slider_int(ctx, 2, &grid_base, 100, 1);
 		if (win->axes.grid_base_x != grid_base)
@@ -197,18 +235,7 @@ int graphics_window_render(struct graphics_window *win)
 
 		nk_layout_row_dynamic(ctx, 20, 1);
 		nk_label(ctx, "Background Color:", NK_TEXT_LEFT);
-		nk_layout_row_dynamic(ctx, 25, 1);
-		if (nk_combo_begin_color(ctx, win->background, nk_vec2(nk_widget_width(ctx),400)))
-		{
-			nk_layout_row_dynamic(ctx, 120, 1);
-			win->background = nk_color_picker(ctx, win->background, NK_RGBA);
-			nk_layout_row_dynamic(ctx, 25, 1);
-			win->background.r = (nk_byte)nk_propertyi(ctx, "#R:", 0, win->background.r, 255, 1,1);
-			win->background.g = (nk_byte)nk_propertyi(ctx, "#G:", 0, win->background.g, 255, 1,1);
-			win->background.b = (nk_byte)nk_propertyi(ctx, "#B:", 0, win->background.b, 255, 1,1);
-			win->background.a = (nk_byte)nk_propertyi(ctx, "#A:", 0, win->background.a, 255, 1,1);
-			nk_combo_end(ctx);
-		}
+		win->background = graphics_color_picker(ctx, win->background, &win->hsv);
 	}
 	nk_end(ctx);
 
@@ -221,4 +248,6 @@ int graphics_window_render(struct graphics_window *win)
 	nk_glfw3_render(&win->nk, NK_ANTI_ALIASING_ON, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER);
 	graphics_check_gl_error("post nk");
 	glfwSwapBuffers(win->nk.win);
+
+	return animating;
 }

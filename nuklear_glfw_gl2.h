@@ -212,9 +212,9 @@ nk_glfw3_key_callback(GLFWwindow *win, int key, int scancode, int action, int mo
             case GLFW_KEY_DOWN         : nk_input_key(ctx, NK_KEY_DOWN           , down); break;
             case GLFW_KEY_LEFT         : nk_input_key(ctx, NK_KEY_LEFT           , down); break;
             case GLFW_KEY_RIGHT        : nk_input_key(ctx, NK_KEY_RIGHT          , down); break;
-            case GLFW_KEY_HOME         : nk_input_key(ctx, NK_KEY_TEXT_START     , down);
+            case GLFW_KEY_HOME         : nk_input_key(ctx, NK_KEY_TEXT_LINE_START, down);
                                          nk_input_key(ctx, NK_KEY_SCROLL_START   , down); break;
-            case GLFW_KEY_END          : nk_input_key(ctx, NK_KEY_TEXT_END       , down);
+            case GLFW_KEY_END          : nk_input_key(ctx, NK_KEY_TEXT_LINE_END  , down);
                                          nk_input_key(ctx, NK_KEY_SCROLL_END     , down); break;
             case GLFW_KEY_PAGE_DOWN    : nk_input_key(ctx, NK_KEY_SCROLL_DOWN    , down); break;
             case GLFW_KEY_PAGE_UP      : nk_input_key(ctx, NK_KEY_SCROLL_UP      , down); break;

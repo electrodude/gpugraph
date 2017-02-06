@@ -13,6 +13,8 @@
 
 #include "axes.h"
 
+#include "linked_list.h"
+
 int buttons[GLFW_MOUSE_BUTTON_LAST];
 double mx, my;
 
@@ -53,6 +55,48 @@ static void windowsize_callback(GLFWwindow *glfw_win, int width, int height)
 	graphics_axes_recalculate(&win->axes);
 }
 
+struct graphics_window *graph_window_new(void)
+{
+	struct graphics_window *win = malloc(sizeof(*win));
+	*win = (struct graphics_window)
+	{
+		.nk =
+		{
+			.width = 800, .height = 600,
+			.glfw_key_callback = key_callback,
+			.glfw_char_callback = char_callback,
+			.glfw_mousebutton_callback = mousebutton_callback,
+			.glfw_cursorpos_callback = cursorpos_callback,
+			.glfw_scroll_callback = scroll_callback,
+		},
+		.background = nk_rgb(0, 0, 0),
+		.hsv = 0,
+	};
+
+	graphics_window_init(win, "igraph");
+
+	stringbuf_reset(&win->title);
+	stringbuf_puts(&win->title, "igraph ");
+	stringbuf_putnum(&win->title, 10, win->id);
+
+	graphics_window_update_title(win);
+
+	glfwSetWindowSizeCallback(win->nk.win, windowsize_callback);
+
+	win->axes = (struct graphics_axes)
+	{
+		.xmid = 0.0, .ymid = 0.0,
+		.dp = 2.0 / win->nk.display_width,
+		.grid_base_x = 10.0, .grid_base_y = 10.0,
+		.width  = win->nk.display_width,
+		.height = win->nk.display_height,
+	};
+	graphics_axes_new(&win->axes);
+	graphics_axes_recalculate(&win->axes);
+
+	return win;
+}
+
 int main(int argc, char **argv)
 {
 	FILE *oom_score_adj = fopen("/proc/self/oom_score_adj", "w+");
@@ -65,45 +109,53 @@ int main(int argc, char **argv)
 
 	graphics_init();
 
-	struct graphics_window win =
+	graph_window_new();
+
+	while (graphics_window_list.next != &graphics_window_list)
 	{
-		.nk =
+		int animating = 0;
+
+		static float time_old = 0.0;
+		float time_new = glfwGetTime();
+		float dt = time_new - time_old;
+		time_old = time_new;
+
+		if (graphics_graph_parameter_update_all(dt))
 		{
-			.width = 800, .height = 600,
-			.glfw_key_callback = key_callback,
-			.glfw_char_callback = char_callback,
-			.glfw_mousebutton_callback = mousebutton_callback,
-			.glfw_cursorpos_callback = cursorpos_callback,
-			.glfw_scroll_callback = scroll_callback,
-		},
-		.background = nk_rgb(0, 0, 0)
-	};
-	graphics_window_init(&win, "igraph");
+			animating = 1;
+		}
 
-	glfwSetWindowSizeCallback(win.nk.win, windowsize_callback);
+		LL_FOR_ALL(win, &graphics_window_list, prev, next)
+		{
+			graphics_window_render(win);
 
-	win.axes = (struct graphics_axes)
-	{
-		.xmid = 0.0, .ymid = 0.0,
-		.dp = 2.0 / win.nk.display_width,
-		.grid_base_x = 10.0, .grid_base_y = 10.0,
-		.width  = win.nk.display_width,
-		.height = win.nk.display_height,
-	};
-	graphics_axes_new(&win.axes);
-	graphics_axes_recalculate(&win.axes);
+			if (glfwWindowShouldClose(win->nk.win))
+			{
+				LL_REMOVE(win, prev, next);
+				graphics_axes_dtor(&win->axes);
+				graphics_window_dtor(win);
 
-	while (!glfwWindowShouldClose(win.nk.win))
-	{
-		nk_input_begin(&win.nk.ctx);
-		glfwPollEvents();
-		nk_input_end(&win.nk.ctx);
+				free(win);
+			}
+		}
 
-		graphics_window_render(&win);
+		LL_FOR_ALL(win, &graphics_window_list, prev, next)
+		{
+			nk_input_begin(&win->nk.ctx);
+		}
+		if (animating)
+		{
+			glfwPollEvents();
+		}
+		else
+		{
+			glfwWaitEvents();
+		}
+		LL_FOR_ALL(win, &graphics_window_list, prev, next)
+		{
+			nk_input_end(&win->nk.ctx);
+		}
 	}
-
-	graphics_axes_dtor(&win.axes);
-	graphics_window_dtor(&win);
 
 	graphics_quit();
 
