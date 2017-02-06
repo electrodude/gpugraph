@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "graphics.h"
+#include "graph_nuklear.h"
 
 #include "axes.h"
 

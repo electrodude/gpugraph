@@ -2,16 +2,13 @@
 #include <stdio.h>
 #include <math.h>
 
-#define GL_GLEXT_PROTOTYPES
-#define GLFW_INCLUDE_GLU
-#define GLFW_INCLUDE_GLEXT
-#include <GLFW/glfw3.h>
-
 #include "graphics.h"
 
 #include "controls.h"
 
 #include "axes.h"
+
+#include "graph_nuklear.h"
 
 #include "linked_list.h"
 

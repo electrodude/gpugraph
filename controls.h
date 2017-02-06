@@ -6,11 +6,12 @@
 
 #include "shader.h"
 
+#include "graph_nuklear.h"
+
 struct nk_context;      // from nuklear.h
 struct nk_color;        // from nuklear.h
 struct graphics_window; // from graphics.h
 
-// is this OK? struct nk_color isn't defined yet
 struct nk_color graphics_color_picker(struct nk_context *ctx, struct nk_color color, int *hsv);
 
 struct graphics_graph_parameter

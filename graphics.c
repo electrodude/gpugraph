@@ -3,12 +3,6 @@
 #include <math.h>
 #include <string.h>
 
-#include "controls.h"
-
-#include "axes.h"
-
-#include "graphics.h"
-
 #define MAX_VERTEX_BUFFER 512 * 1024
 #define MAX_ELEMENT_BUFFER 128 * 1024
 
@@ -16,8 +10,13 @@
 #define NK_MEMCPY memcpy
 
 #define NK_GLFW_GL2_IMPLEMENTATION
-#include "nuklear/nuklear.h"
-#include "nuklear_glfw_gl2.h"
+#include "graph_nuklear.h"
+
+#include "controls.h"
+
+#include "axes.h"
+
+#include "graphics.h"
 
 #include "linked_list.h"
 
