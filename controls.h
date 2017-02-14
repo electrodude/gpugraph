@@ -1,7 +1,6 @@
 #ifndef CONTROLS_H
 #define CONTROLS_H
 
-#include "stack.h"
 #include "stringbuf.h"
 
 #include "shader.h"
@@ -14,29 +13,42 @@ struct graphics_window; // from graphics.h
 
 struct nk_color graphics_color_picker(struct nk_context *ctx, struct nk_color color, int *hsv);
 
+struct nk_rect graphics_util_nk_rect_check(struct nk_rect bounds, struct nk_vec2 size);
+
+
 struct graphics_graph_parameter
 {
+	struct stringbuf name;
+
 	size_t count;
 	float *values;
 
-	int id;
 	size_t refs;
+
+	struct graphics_graph_parameter *prev;
+	struct graphics_graph_parameter *next;
+	int id;
 };
 
-extern struct stack graphics_graph_parameters;
+extern struct graphics_graph_parameter graphics_graph_parameters;
 
 struct graphics_graph_parameter *graphics_graph_parameter_new(size_t count);
 void graphics_graph_parameter_ref(struct graphics_graph_parameter **param_p, struct graphics_graph_parameter *param);
 void graphics_graph_parameter_unref(struct graphics_graph_parameter *param);
 
+void graphics_graph_parameter_draw(struct graphics_graph_parameter *param, struct stringbuf *name, struct nk_context *ctx);
+
 int graphics_graph_parameter_update_all(float dt);
 
 struct graphics_graph_parameter_view
 {
+	struct stringbuf name;
+
 	struct graphics_graph_parameter *param;
 	GLint uniform;
 
-	struct stringbuf name;
+	struct graphics_graph_parameter_view *prev;
+	struct graphics_graph_parameter_view *next;
 };
 
 #define graphics_graph_parameter_view_new(name, param) (graphics_graph_parameter_view_new_at(malloc(sizeof(struct graphics_graph_parameter_view)), name, param))
@@ -56,7 +68,7 @@ enum graphics_graph_action
 
 struct graphics_graph
 {
-	struct stack params;
+	struct graphics_graph_parameter_view params;
 
 	struct graphics_shader_program eqn_shader;
 #if 0
@@ -72,12 +84,11 @@ struct graphics_graph
 
 	float color[4];
 
-	int enable;
-	int animate;
-
-	int hsv;
-
 	enum graphics_graph_action action;
+
+	int enable;
+	int dock;
+	int hsv;
 };
 
 struct nk_context;
@@ -90,6 +101,7 @@ void graphics_graph_free(struct graphics_graph *graph);
 void graphics_graph_setup(struct graphics_graph *graph);
 void graphics_graph_render(struct graphics_graph *graph, struct graphics_window *win);
 int graphics_graph_update(struct graphics_graph *graph);
-void graphics_graph_draw(struct graphics_graph *graph, struct nk_context *ctx);
+void graphics_graph_draw(struct graphics_graph *graph, struct graphics_window *win);
+void graphics_graph_draw_dock(struct graphics_graph *graph, struct nk_context *ctx);
 
 #endif /* CONTROLS_H */

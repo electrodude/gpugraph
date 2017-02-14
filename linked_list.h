@@ -1,7 +1,7 @@
 #ifndef LINKED_LIST_H
 #define LINKED_LIST_H
 
-#define LL_INIT(chain) do { \
+#define LL_INIT(chain, prev, next) do { \
 	(chain)->prev = (chain); \
 	(chain)->next = (chain); \
 } while (0)

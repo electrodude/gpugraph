@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <math.h>
 
+#include "linked_list.h"
+
 #include "graphics.h"
 
 #include "controls.h"
@@ -10,10 +12,12 @@
 
 #include "graph_nuklear.h"
 
-#include "linked_list.h"
 
-int buttons[GLFW_MOUSE_BUTTON_LAST];
-double mx, my;
+// these two should be local to each window
+static int buttons[GLFW_MOUSE_BUTTON_LAST];
+static double mx, my;
+
+static int animate_next = 0;
 
 static void key_callback(struct nk_glfw *nk_win, int key, int scancode, int action, int mods) {}
 static void char_callback(struct nk_glfw *nk_win, unsigned int codepoint) {}
@@ -23,6 +27,7 @@ static void mousebutton_callback(struct nk_glfw *nk_win, int button, int action,
 	struct graphics_window *win = nk_win->userdata.ptr;
 	//printf("mouse button: %d, %d\n", button, action);
 	buttons[button] = action;
+	animate_next = 1;
 }
 static void cursorpos_callback(struct nk_glfw *nk_win, double x, double y)
 {
@@ -43,6 +48,7 @@ static void scroll_callback(struct nk_glfw *nk_win, double xoff, double yoff)
 	struct graphics_window *win = nk_win->userdata.ptr;
 	//printf("(%g, %g), %g\n", win->axes.xmid, win->axes.ymid, win->axes.dp);
 	graphics_axes_zoom(&win->axes, mx * win->axes.dp + win->axes.xmin, win->axes.ymax - my * win->axes.dp, exp(-yoff*0.03));
+	animate_next = 1;
 }
 static void windowsize_callback(GLFWwindow *glfw_win, int width, int height)
 {
@@ -50,6 +56,7 @@ static void windowsize_callback(GLFWwindow *glfw_win, int width, int height)
 	win->axes.width = width;
 	win->axes.height = height;
 	graphics_axes_recalculate(&win->axes);
+	animate_next = 1;
 }
 
 struct graphics_window *graph_window_new(void)
@@ -104,13 +111,17 @@ int main(int argc, char **argv)
 		printf("set own oom_score_adj to 1000\n");
 	}
 
+	LL_INIT(&graphics_graph_parameters, prev, next);
+	graphics_graph_parameters.id = -1;
+
 	graphics_init();
 
 	graph_window_new();
 
 	while (graphics_window_list.next != &graphics_window_list)
 	{
-		int animating = 0;
+		int animating = animate_next;
+		animate_next = 0;
 
 		static float time_old = 0.0;
 		float time_new = glfwGetTime();

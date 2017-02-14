@@ -9,7 +9,7 @@ RANLIB=ranlib
 #LDFLAGS+=-g
 CFLAGS+=-O3
 
-SOURCES=$(shell echo main.c controls.c axes.c shader.c graphics.c nuklear.c stack.c stringbuf.c stringslice.c)
+SOURCES=$(shell echo main.c controls.c axes.c shader.c graphics.c nuklear.c stringbuf.c stringslice.c)
 OBJECTS=$(patsubst %.c,%.o,${SOURCES})
 
 all:		graph

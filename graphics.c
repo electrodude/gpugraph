@@ -12,17 +12,17 @@
 #define NK_GLFW_GL2_IMPLEMENTATION
 #include "graph_nuklear.h"
 
+#include "linked_list.h"
+
 #include "controls.h"
 
 #include "axes.h"
 
 #include "graphics.h"
 
-#include "linked_list.h"
-
 static void gr_error_callback(int error, const char *description)
 {
-	fputs(description, stderr);
+	fprintf(stderr, "%d: %s\n", error, description);
 }
 
 struct graphics_window *graphics_window_curr = NULL;
@@ -39,7 +39,7 @@ int graphics_init(void)
 		return -1;
 	}
 
-	LL_INIT(&graphics_window_list);
+	LL_INIT(&graphics_window_list, prev, next);
 	graphics_window_list.id = -1;
 
 	return 0;
@@ -69,7 +69,7 @@ int graphics_window_init(struct graphics_window *win, const char *title)
 	// load fonts here
 	nk_glfw3_font_stash_end(&win->nk);
 
-	LL_INIT(&win->graph_list);
+	LL_INIT(&win->graph_list, prev, next);
 	win->graph_list.id = -1;
 
 	win->id = win_id_next++;
@@ -136,7 +136,7 @@ int graphics_window_render(struct graphics_window *win)
 
 	LL_FOR_ALL(graph, &win->graph_list, prev, next)
 	{
-		graphics_graph_draw(graph, ctx);
+		graphics_graph_draw(graph, win);
 		if (graphics_graph_update(graph)) animating = 1;
 		graphics_graph_render(graph, win);
 	}
@@ -188,53 +188,86 @@ int graphics_window_render(struct graphics_window *win)
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
 
-	if (nk_begin(ctx, "Settings", nk_rect(0, 0, 230, 200),
-	             NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|
+	if (nk_begin(ctx, "Window Settings", nk_rect(0, 0, 230, 240),
+	             NK_WINDOW_BORDER|NK_WINDOW_SCALABLE|
 	             NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE))
 	{
-		nk_layout_row_dynamic(ctx, 25, 2);
-		if (nk_button_label(ctx, "New Graph"))
+		if (nk_tree_push(ctx, NK_TREE_NODE, "Window Settings", NK_MAXIMIZED))
 		{
-			struct graphics_graph *graph = graphics_graph_new();
-			graph->color[0] = 1.0f;
-			graph->color[1] = 1.0f;
-			graph->color[2] = 1.0f;
-			graph->color[3] = 1.0f;
-			LL_INSERT_BEFORE(&win->graph_list, graph, prev, next);
-		}
-		if (nk_button_label(ctx, "New Window"))
-		{
-			struct graphics_window *graph_window_new(void); // from main.c
-			struct graphics_window *win2 = graph_window_new();
-		}
-
-		{
-			stringbuf_reserve(&win->title, win->title.n);
-			nk_layout_row_dynamic(ctx, 20, 1);
-			int n = win->title.n;
-			int updated = nk_edit_string(ctx, NK_EDIT_FIELD, win->title.s, &n, win->title.maxn-1, nk_filter_default);
-			win->title.n = n;
-
-			if (updated)
+			nk_layout_row_dynamic(ctx, 20, 2);
+			if (nk_button_label(ctx, "New Graph"))
 			{
-				graphics_window_update_title(win);
+				struct graphics_graph *graph = graphics_graph_new();
+				graph->color[0] = 1.0f;
+				graph->color[1] = 1.0f;
+				graph->color[2] = 1.0f;
+				graph->color[3] = 1.0f;
+				LL_INSERT_BEFORE(&win->graph_list, graph, prev, next);
 			}
+			if (nk_button_label(ctx, "New Window"))
+			{
+				struct graphics_window *graph_window_new(void); // from main.c
+				struct graphics_window *win2 = graph_window_new();
+			}
+
+			{
+				nk_layout_row_dynamic(ctx, 15, 1);
+				nk_label(ctx, "Window Title:", NK_TEXT_LEFT);
+				nk_layout_row_dynamic(ctx, 25, 1);
+				stringbuf_reserve(&win->title, win->title.n);
+				int n = win->title.n;
+				int updated = nk_edit_string(ctx, NK_EDIT_FIELD, win->title.s, &n, win->title.maxn-1, nk_filter_default);
+				win->title.n = n;
+
+				if (updated)
+				{
+					graphics_window_update_title(win);
+				}
+			}
+
+			static int grid_base = 10;
+			nk_layout_row_dynamic(ctx, 20, 1);
+			int size = win->nk.width > win->nk.height ? win->nk.width : win->nk.height;
+			int gridbase_max = ceil(sqrt(size));
+			nk_property_int(ctx, "Grid Base:", 2, &grid_base, gridbase_max, 1, 1);
+			nk_slider_int(ctx, 2, &grid_base, gridbase_max, 1);
+			if (win->axes.grid_base_x != grid_base)
+			{
+				win->axes.grid_base_x = grid_base;
+				win->axes.grid_base_y = grid_base;
+				graphics_axes_recalculate(&win->axes);
+			}
+
+			nk_layout_row_dynamic(ctx, 15, 1);
+			nk_label(ctx, "Background Color:", NK_TEXT_LEFT);
+			win->background = graphics_color_picker(ctx, win->background, &win->hsv);
+
+			nk_tree_pop(ctx);
 		}
 
-		static int grid_base = 10;
-		nk_layout_row_dynamic(ctx, 20, 1);
-		nk_property_int(ctx, "Grid Base:", 2, &grid_base, 100, 1, 1);
-		nk_slider_int(ctx, 2, &grid_base, 100, 1);
-		if (win->axes.grid_base_x != grid_base)
+		LL_FOR_ALL(graph, &win->graph_list, prev, next)
 		{
-			win->axes.grid_base_x = grid_base;
-			win->axes.grid_base_y = grid_base;
-			graphics_axes_recalculate(&win->axes);
+			graphics_graph_draw_dock(graph, ctx);
 		}
+	}
+	nk_end(ctx);
 
-		nk_layout_row_dynamic(ctx, 20, 1);
-		nk_label(ctx, "Background Color:", NK_TEXT_LEFT);
-		win->background = graphics_color_picker(ctx, win->background, &win->hsv);
+	if (nk_begin(ctx, "Parameters", nk_rect(win->nk.display_width - 230, 0, 230, 240),
+	             NK_WINDOW_BORDER|NK_WINDOW_SCALABLE|
+	             NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE))
+	{
+		struct nk_rect bounds = nk_window_get_bounds(ctx);
+		if (ctx->input.mouse.buttons[0].clicked)
+		{
+			bounds.x = win->nk.display_width - bounds.w;
+		}
+		bounds = graphics_util_nk_rect_check(bounds, nk_vec2(win->nk.display_width, win->nk.display_height));
+		nk_window_set_bounds(ctx, bounds);
+
+		LL_FOR_ALL(param, &graphics_graph_parameters, prev, next)
+		{
+			graphics_graph_parameter_draw(param, &param->name, ctx);
+		}
 	}
 	nk_end(ctx);
 
