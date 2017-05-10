@@ -1,6 +1,7 @@
 #ifndef CONTROLS_H
 #define CONTROLS_H
 
+#include "stringslice.h"
 #include "stringbuf.h"
 
 #include "shader.h"
@@ -28,15 +29,22 @@ struct graphics_graph_parameter
 	struct graphics_graph_parameter *prev;
 	struct graphics_graph_parameter *next;
 	int id;
+
+	int enable;
+	int animate;
 };
 
 extern struct graphics_graph_parameter graphics_graph_parameters;
+struct graphics_graph_parameter *graphics_graph_parameter_lookup(struct stringslice name);
 
 struct graphics_graph_parameter *graphics_graph_parameter_new(size_t count);
 void graphics_graph_parameter_ref(struct graphics_graph_parameter **param_p, struct graphics_graph_parameter *param);
 void graphics_graph_parameter_unref(struct graphics_graph_parameter *param);
 
+void graphics_graph_parameter_set_count(struct graphics_graph_parameter *param, size_t count);
+
 void graphics_graph_parameter_draw(struct graphics_graph_parameter *param, struct stringbuf *name, struct nk_context *ctx);
+void graphics_graph_parameter_draw_settings(struct graphics_graph_parameter *param, struct nk_context *ctx);
 
 int graphics_graph_parameter_update_all(float dt);
 
@@ -52,7 +60,7 @@ struct graphics_graph_parameter_view
 };
 
 #define graphics_graph_parameter_view_new(name, param) (graphics_graph_parameter_view_new_at(malloc(sizeof(struct graphics_graph_parameter_view)), name, param))
-struct graphics_graph_parameter_view *graphics_graph_parameter_view_new_at(struct graphics_graph_parameter_view *view, const char *name, struct graphics_graph_parameter *param);
+struct graphics_graph_parameter_view *graphics_graph_parameter_view_new_at(struct graphics_graph_parameter_view *view, struct stringslice name, struct graphics_graph_parameter *param);
 int graphics_graph_parameter_view_dtor(struct graphics_graph_parameter_view *view);
 void graphics_graph_parameter_view_free(struct graphics_graph_parameter_view *view);
 

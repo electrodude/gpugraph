@@ -244,12 +244,10 @@ NK_API void
 nk_glfw3_char_callback(GLFWwindow *win, unsigned int codepoint)
 {
     struct nk_glfw *glfw = glfwGetWindowUserPointer(win);
-    if (glfw->glfw_char_callback != NULL)
-    {
+    if (glfw->glfw_char_callback != NULL) {
         glfw->glfw_char_callback(glfw, codepoint);
     }
-    if (codepoint < 0x10FFFF)
-    {
+    if (codepoint < 0x10FFFF) {
         nk_input_unicode(&glfw->ctx, codepoint);
     }
 }
@@ -258,8 +256,7 @@ NK_API void
 nk_glfw3_mousebutton_callback(GLFWwindow *win, int button, int action, int mods)
 {
     struct nk_glfw *glfw = glfwGetWindowUserPointer(win);
-    if (glfw->glfw_mousebutton_callback != NULL)
-    {
+    if (glfw->glfw_mousebutton_callback != NULL) {
         glfw->glfw_mousebutton_callback(glfw, button, action, mods);
     }
     enum nk_buttons id;
@@ -278,8 +275,7 @@ NK_API void
 nk_glfw3_cursorpos_callback(GLFWwindow *win, double x, double y)
 {
     struct nk_glfw *glfw = glfwGetWindowUserPointer(win);
-    if (glfw->glfw_cursorpos_callback != NULL)
-    {
+    if (glfw->glfw_cursorpos_callback != NULL) {
         glfw->glfw_cursorpos_callback(glfw, x, y);
     }
     nk_input_motion(&glfw->ctx, (int)x, (int)y);
@@ -303,8 +299,7 @@ NK_API void
 nk_glfw3_scroll_callback(GLFWwindow *win, double xoff, double yoff)
 {
     struct nk_glfw *glfw = glfwGetWindowUserPointer(win);
-    if (glfw->glfw_scroll_callback != NULL && !nk_item_is_any_active(&glfw->ctx))
-    {
+    if (glfw->glfw_scroll_callback != NULL && !nk_item_is_any_active(&glfw->ctx)) {
         glfw->glfw_scroll_callback(glfw, xoff, yoff);
     }
     (void)xoff;

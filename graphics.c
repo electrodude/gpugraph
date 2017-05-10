@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <assert.h>
 
 #define MAX_VERTEX_BUFFER 512 * 1024
 #define MAX_ELEMENT_BUFFER 128 * 1024
@@ -15,6 +16,9 @@
 #include "linked_list.h"
 
 #include "controls.h"
+
+#include "session_load.h"
+#include "session_save.h"
 
 #include "axes.h"
 
@@ -103,33 +107,8 @@ void graphics_window_update_title(struct graphics_window *win)
 	glfwSetWindowTitle(win->nk.win, stringbuf_get(&win->title));
 }
 
-int graphics_window_render(struct graphics_window *win)
+int graphics_window_draw(struct graphics_window *win)
 {
-	graphics_window_select(win);
-
-	nk_glfw3_new_frame(&win->nk);
-
-	graphics_check_gl_error("pre gl setup");
-	float bg[4];
-	nk_color_fv(bg, win->background);
-	glViewport(0, 0, win->nk.display_width, win->nk.display_height);
-	glClear(GL_COLOR_BUFFER_BIT);
-	glClearColor(bg[0], bg[1], bg[2], bg[3]);
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glMatrixMode(GL_PROJECTION);
-	glPushMatrix();
-	glLoadIdentity();
-	graphics_check_gl_error("gl projection");
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glLoadIdentity();
-	float aspect_ratio = win->nk.display_width / (float)win->nk.display_height;
-	glOrtho(0.0f, aspect_ratio, 1.0f, 0.0f, -1.0f, 1.0f);
-	graphics_check_gl_error("gl modelview");
-
 	struct nk_context *ctx = &win->nk.ctx;
 
 	int animating = 0;
@@ -138,17 +117,12 @@ int graphics_window_render(struct graphics_window *win)
 	{
 		graphics_graph_draw(graph, win);
 		if (graphics_graph_update(graph)) animating = 1;
-		graphics_graph_render(graph, win);
 	}
 
-	struct graphics_graph *graph_freeme = NULL;
+	struct graphics_graph graph_freelist;
+	LL_INIT(&graph_freelist, prev, next);
 	LL_FOR_ALL(graph, &win->graph_list, prev, next)
 	{
-		if (graph_freeme != NULL)
-		{
-			graphics_graph_free(graph_freeme);
-			graph_freeme = NULL;
-		}
 		enum graphics_graph_action action = graph->action;
 		graph->action = GRAPHICS_GRAPH_ACTION_NONE;
 		switch (action)
@@ -156,7 +130,9 @@ int graphics_window_render(struct graphics_window *win)
 			case GRAPHICS_GRAPH_ACTION_MOVE_UP:
 				if (graph->next == &win->graph_list) break; // already at top; do nothing
 				LL_REMOVE(graph, prev, next); // temporarily remove node from list
+				LL_VERIFY(&win->graph_list, prev, next, assert);
 				LL_INSERT_BEFORE(graph->next->next, graph, prev, next); // and reinsert it below the one below this one
+				LL_VERIFY(&win->graph_list, prev, next, assert);
 				graph = graph->prev->prev; // go back to get the one we moved before this one without processing
 				// this one gets processed again after the previous one, but it's fine
 				break;
@@ -169,39 +145,75 @@ int graphics_window_render(struct graphics_window *win)
 				break;
 
 			case GRAPHICS_GRAPH_ACTION_CLOSE:
-				graph_freeme = graph;
+				LL_REMOVE(graph, prev, next);
+				struct graphics_graph *graph_prev = graph->prev;
+				LL_INSERT_BEFORE(&graph_freelist, graph, prev, next);
+				graph = graph_prev;
 				break;
 		}
 	}
-	if (graph_freeme != NULL)
+
+	while (graph_freelist.next != &graph_freelist)
 	{
-		graphics_graph_free(graph_freeme);
-		graph_freeme = NULL;
+		LL_REMOVE(graph_freelist.next, prev, next);
 	}
-
-	graphics_axes_render(&win->axes);
-
-	glUseProgram(0);
-
-	glMatrixMode(GL_MODELVIEW);
-	glPopMatrix();
-	glMatrixMode(GL_PROJECTION);
-	glPopMatrix();
 
 	if (nk_begin(ctx, "Window Settings", nk_rect(0, 0, 230, 240),
 	             NK_WINDOW_BORDER|NK_WINDOW_SCALABLE|
 	             NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE))
 	{
+		if (nk_tree_push(ctx, NK_TREE_NODE, "Session", NK_MINIMIZED))
+		{
+			{
+				nk_layout_row_dynamic(ctx, 15, 1);
+				nk_label(ctx, "Path", NK_TEXT_LEFT);
+				nk_layout_row_dynamic(ctx, 25, 1);
+				stringbuf_reserve(&session_path, win->title.n);
+				int n = session_path.n;
+				int updated = nk_edit_string(ctx, NK_EDIT_FIELD, session_path.s, &n, session_path.maxn-1, nk_filter_default);
+				session_path.n = n;
+			}
+			nk_layout_row_dynamic(ctx, 20, 2);
+			if (nk_button_label(ctx, "Save"))
+			{
+				session_save_curr();
+			}
+			if (nk_button_label(ctx, "Load"))
+			{
+				LL_FOR_ALL(win, &graphics_window_list, prev, next)
+				{
+					glfwSetWindowShouldClose(win->nk.win, 1);
+				}
+
+				session_load_curr();
+				graphics_window_select(win);
+			}
+			nk_layout_row_dynamic(ctx, 20, 2);
+			if (nk_button_label(ctx, "New"))
+			{
+				LL_FOR_ALL(win, &graphics_window_list, prev, next)
+				{
+					glfwSetWindowShouldClose(win->nk.win, 1);
+				}
+
+				stringbuf_reset(&session_path);
+				struct graphics_window *graph_window_new(void); // from main.c
+				graph_window_new();
+				graphics_window_select(win);
+			}
+			if (nk_button_label(ctx, "Quit"))
+			{
+				fprintf(stderr, "NYI\n");
+			}
+
+			nk_tree_pop(ctx);
+		}
 		if (nk_tree_push(ctx, NK_TREE_NODE, "Window Settings", NK_MAXIMIZED))
 		{
 			nk_layout_row_dynamic(ctx, 20, 2);
 			if (nk_button_label(ctx, "New Graph"))
 			{
 				struct graphics_graph *graph = graphics_graph_new();
-				graph->color[0] = 1.0f;
-				graph->color[1] = 1.0f;
-				graph->color[2] = 1.0f;
-				graph->color[3] = 1.0f;
 				LL_INSERT_BEFORE(&win->graph_list, graph, prev, next);
 			}
 			if (nk_button_label(ctx, "New Window"))
@@ -264,12 +276,66 @@ int graphics_window_render(struct graphics_window *win)
 		bounds = graphics_util_nk_rect_check(bounds, nk_vec2(win->nk.display_width, win->nk.display_height));
 		nk_window_set_bounds(ctx, bounds);
 
+		if (nk_tree_push(ctx, NK_TREE_NODE, "Parameter Settings", NK_MINIMIZED))
+		{
+			LL_FOR_ALL(param, &graphics_graph_parameters, prev, next)
+			{
+				graphics_graph_parameter_draw_settings(param, ctx);
+			}
+
+			nk_tree_pop(ctx);
+		}
+
 		LL_FOR_ALL(param, &graphics_graph_parameters, prev, next)
 		{
 			graphics_graph_parameter_draw(param, &param->name, ctx);
 		}
 	}
 	nk_end(ctx);
+
+	return animating;
+}
+
+void graphics_window_render(struct graphics_window *win)
+{
+	//graphics_window_select(win);
+
+	nk_glfw3_new_frame(&win->nk);
+
+	graphics_check_gl_error("pre gl setup");
+	float bg[4];
+	nk_color_fv(bg, win->background);
+	glViewport(0, 0, win->nk.display_width, win->nk.display_height);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glClearColor(bg[0], bg[1], bg[2], bg[3]);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+	graphics_check_gl_error("gl projection");
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+	float aspect_ratio = win->nk.display_width / (float)win->nk.display_height;
+	glOrtho(0.0f, aspect_ratio, 1.0f, 0.0f, -1.0f, 1.0f);
+	graphics_check_gl_error("gl modelview");
+
+	LL_FOR_ALL(graph, &win->graph_list, prev, next)
+	{
+		graphics_graph_render(graph, win);
+	}
+
+	graphics_axes_render(&win->axes);
+
+	glUseProgram(0);
+
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
 
 
 	/* IMPORTANT: `nk_glfw_render` modifies some global OpenGL state
@@ -280,6 +346,4 @@ int graphics_window_render(struct graphics_window *win)
 	nk_glfw3_render(&win->nk, NK_ANTI_ALIASING_ON, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER);
 	graphics_check_gl_error("post nk");
 	glfwSwapBuffers(win->nk.win);
-
-	return animating;
 }

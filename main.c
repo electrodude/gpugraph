@@ -8,12 +8,14 @@
 
 #include "controls.h"
 
+#include "session_load.h"
+#include "session_save.h"
+
 #include "axes.h"
 
 #include "graph_nuklear.h"
 
-
-// these two should be local to each window
+// these two need to be local to each window
 static int buttons[GLFW_MOUSE_BUTTON_LAST];
 static double mx, my;
 
@@ -101,27 +103,49 @@ struct graphics_window *graph_window_new(void)
 	return win;
 }
 
+struct stringbuf graphics_axes_shader_path = {0};
+
 int main(int argc, char **argv)
 {
 	FILE *oom_score_adj = fopen("/proc/self/oom_score_adj", "w+");
 	if (oom_score_adj != NULL)
 	{
+		// Kill me first.
+		// (Is this necessary?  Does this still actually use tons of ram, or was it just a bug?)
 		fprintf(oom_score_adj, "1000\n");
 		fclose(oom_score_adj);
-		printf("set own oom_score_adj to 1000\n");
+#if 0
+		fprintf(stderr, "set own oom_score_adj to 1000\n");
+#endif
 	}
 
+	// should go somewhere else
 	LL_INIT(&graphics_graph_parameters, prev, next);
 	graphics_graph_parameters.id = -1;
 
+	stringbuf_reset(&graphics_axes_shader_path);
+	stringbuf_puts(&graphics_axes_shader_path, "/home/albertemanuel/code/c/gpugraph/");
+
 	graphics_init();
 
-	graph_window_new();
+	if (argc > 1)
+	{
+		const char *f = argv[1];
+
+		if (session_load_path(f))
+		{
+			graph_window_new();
+		}
+	}
+	else
+	{
+		graph_window_new();
+	}
 
 	while (graphics_window_list.next != &graphics_window_list)
 	{
 		int animating = animate_next;
-		animate_next = 0;
+		if (animate_next) animate_next--;
 
 		static float time_old = 0.0;
 		float time_new = glfwGetTime();
@@ -131,6 +155,18 @@ int main(int argc, char **argv)
 		if (graphics_graph_parameter_update_all(dt))
 		{
 			animating = 1;
+		}
+
+		LL_FOR_ALL(win, &graphics_window_list, prev, next)
+		{
+			if (glfwWindowShouldClose(win->nk.win))
+			{
+				LL_REMOVE(win, prev, next);
+				graphics_axes_dtor(&win->axes);
+				graphics_window_dtor(win);
+
+				free(win);
+			}
 		}
 
 		LL_FOR_ALL(win, &graphics_window_list, prev, next)
@@ -149,8 +185,10 @@ int main(int argc, char **argv)
 
 		LL_FOR_ALL(win, &graphics_window_list, prev, next)
 		{
+			graphics_window_select(win);
 			nk_input_begin(&win->nk.ctx);
 		}
+
 		if (animating)
 		{
 			glfwPollEvents();
@@ -158,11 +196,25 @@ int main(int argc, char **argv)
 		else
 		{
 			glfwWaitEvents();
+			glfwWaitEvents(); // TODO: fix this
 		}
+		graphics_check_gl_error("events");
 		LL_FOR_ALL(win, &graphics_window_list, prev, next)
 		{
+			graphics_window_select(win);
 			nk_input_end(&win->nk.ctx);
 		}
+	}
+
+	if (graphics_window_list.next != &graphics_window_list)
+	{
+		// only autosave on quit if any windows are left
+		session_save_path("session_quit.txt");
+	}
+
+	LL_FOR_ALL(win, &graphics_window_list, prev, next)
+	{
+		graphics_window_dtor(win);
 	}
 
 	graphics_quit();

@@ -37,6 +37,11 @@ static inline size_t stringslice_len(const struct stringslice *slice)
 	return slice->end - slice->start;
 }
 
+void stringslice_match_ws(struct stringslice *slice);
+
+struct stringslice stringslice_match_word(struct stringslice *slice);
+struct stringslice stringslice_match_line(struct stringslice *slice);
+
 int stringslice_match(struct stringslice *slice, const char *s);
 
 int stringslice_match_hexbyte(struct stringslice *slice);

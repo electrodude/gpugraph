@@ -36,7 +36,8 @@ static inline void graphics_window_select(struct graphics_window *win);
 
 void graphics_window_update_title(struct graphics_window *win);
 
-int graphics_window_render(struct graphics_window *win);
+int graphics_window_draw(struct graphics_window *win);
+void graphics_window_render(struct graphics_window *win);
 
 
 // implementations

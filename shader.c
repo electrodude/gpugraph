@@ -54,7 +54,7 @@ int graphics_shader_program_link(struct graphics_shader_program *program)
 
 int graphics_shader_program_dtor(struct graphics_shader_program *program)
 {
-	/* TODO:
+	/* Not necessary, done automatically by glDeleteProgram below
 	for (shader : program->shaders)
 	{
 		glDetachShader(program->program, shader);

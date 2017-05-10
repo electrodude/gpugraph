@@ -1,20 +1,34 @@
 #include <stdlib.h>
+#include <unistd.h>
 #include <math.h>
 
 #include "graph_nuklear.h"
 
+#include "stringbuf.h"
+
 #include "axes.h"
+
+#define GRAPHICS_AXES_DEBUG 0
 
 void graphics_axes_new(struct graphics_axes *axes)
 {
 	graphics_shader_program_new (&axes->grid_shader);
-	graphics_shader_add_file    (&axes->grid_shader, GL_VERTEX_SHADER  , "shader.v.glsl");
-	graphics_shader_add_file    (&axes->grid_shader, GL_FRAGMENT_SHADER, "grid_linear.f.glsl");
+	STRINGBUF_ON_STACK(path, graphics_axes_shader_path.n+16);
+	stringbuf_append(&path, &graphics_axes_shader_path);
+	size_t i = path.n;
+	stringbuf_puts(&path, "shader.v.glsl");
+	graphics_shader_add_file    (&axes->grid_shader, GL_VERTEX_SHADER  , stringbuf_get(&path));
+	path.n = i;
+	stringbuf_puts(&path, "grid_linear.f.glsl");
+	graphics_shader_add_file    (&axes->grid_shader, GL_FRAGMENT_SHADER, stringbuf_get(&path));
+	stringbuf_dtor(&path);
 	graphics_shader_program_link(&axes->grid_shader);
+#if GRAPHICS_AXES_DEBUG
 	printf("axes location(origin) = %d\n", glGetUniformLocation(axes->grid_shader.program, "origin"));
 	printf("axes location(scale) = %d\n", glGetUniformLocation(axes->grid_shader.program, "scale"));
 	printf("axes location(grid_scale) = %d\n", glGetUniformLocation(axes->grid_shader.program, "grid_scale"));
 	printf("axes location(grid_intensity) = %d\n", glGetUniformLocation(axes->grid_shader.program, "grid_intensity"));
+#endif
 	if (axes->grid_shader.status != GRAPHICS_SHADER_PROGRAM_LINKED) abort();
 }
 

@@ -20,6 +20,8 @@
 #include "nuklear/nuklear.h"
 #include "nuklear_glfw_gl2.h"
 
+#include <stdio.h>
+
 static inline void graphics_check_gl_error(const char *msg)
 {
 	for (GLenum glerr = glGetError(); glerr; glerr = glGetError())

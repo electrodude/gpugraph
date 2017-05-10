@@ -1,10 +1,14 @@
 #ifndef AXES_H
 #define AXES_H
 
+#include "stringbuf.h"
+
 #include "shader.h"
 
 // must match value in grid_linear.f.glsl
 #define GRID_ORDERS 5
+
+extern struct stringbuf graphics_axes_shader_path;
 
 enum graphics_axes_grid_type
 {

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "stringslice.h"
 
@@ -28,6 +29,40 @@ int stringslice_file_write(const struct stringslice *slice, FILE *fp)
 	return 0;
 }
 
+void stringslice_match_ws(struct stringslice *slice)
+{
+	if (slice == NULL) return;
+
+	while (stringslice_ok(slice) && isspace(*slice->start)) slice->start++;
+}
+
+struct stringslice stringslice_match_word(struct stringslice *slice)
+{
+	if (slice == NULL) return STRINGSLICE_EMPTY;
+
+	struct stringslice line;
+	line.start = slice->start;
+
+	while (stringslice_ok(slice) && !isspace(*slice->start)) slice->start++;
+
+	line.end = slice->start;
+
+	return line;
+}
+
+struct stringslice stringslice_match_line(struct stringslice *slice)
+{
+	if (slice == NULL) return STRINGSLICE_EMPTY;
+
+	struct stringslice line;
+	line.start = slice->start;
+
+	while (stringslice_ok(slice) && !(*slice->start == '\n' || *slice->start == '\n')) slice->start++;
+
+	line.end = slice->start;
+
+	return line;
+}
 
 int stringslice_match(struct stringslice *slice, const char *s)
 {
