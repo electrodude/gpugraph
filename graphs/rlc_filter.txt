@@ -1,0 +1,72 @@
+param 2 828.347 0 R
+param 2 0.0815 0 L
+param 2 4.7493e-07 0 C
+
+window igraph 0
+{
+	view -3725.28, 470.764; 21.5782
+
+	graph frag C
+	{
+		param R = R
+		param L = L
+		param C = C
+
+		color #ffffffff
+
+		enable 0
+
+		dock 1
+
+		shader frag
+		{
+			vec2 s = pos;
+			vec2 n = vec2(1.0/(L*C), 0.0);
+			vec2 d = vec2(1.0/(L*C), 0.0) + cpx_mul(s, vec2(R/L, 0.0) + s);
+			vec2 H = cpx_div(n, d);
+			gl_FragColor = cpx_plot(H);
+		}
+	}
+
+	graph frag R
+	{
+		param R = R
+		param L = L
+		param C = C
+
+		color #ffffffff
+
+		enable 0
+
+		dock 1
+
+		shader frag
+		{
+			vec2 s = pos;
+			vec2 n = s*R/L;
+			vec2 d = vec2(1.0/(L*C), 0.0) + cpx_mul(s, vec2(R/L, 0.0) + s);
+			vec2 H = cpx_div(n, d);
+			gl_FragColor = cpx_plot(H);
+		}
+	}
+
+	graph frag L
+	{
+		param R = R
+		param L = L
+		param C = C
+
+		color #ffffffff
+
+		dock 1
+
+		shader frag
+		{
+			vec2 s = pos;
+			vec2 n = cpx_mul(s, s);
+			vec2 d = vec2(1.0/(L*C), 0.0) + cpx_mul(s, vec2(R/L, 0.0) + s);
+			vec2 H = cpx_div(n, d);
+			gl_FragColor = cpx_plot(H);
+		}
+	}
+}

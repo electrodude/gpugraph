@@ -1,0 +1,44 @@
+param 2 282.686 0.251397 Kl
+
+window Root Locus
+{
+	view -4.39682, 1.53467; 0.0115455
+
+	graph frag s-Plane
+	{
+		param Kl = Kl
+
+		color #ffffffff
+
+		dock 1
+
+		shader frag
+		{
+			vec2 s = pos;
+			vec2 I = vec2(1.0, 0.0);
+			float K = tan(Kl);
+			vec2 G = K*cpx_div(cpx_mul(s+I,cpx_mul(s,s)+2.0*I), cpx_mul(s+3.0*I,s-3.0*I));
+			vec2 H = I;
+			vec2 C = cpx_div(G, I + cpx_mul(G, H));
+			
+			gl_FragColor = cpx_plot(C);
+		}
+	}
+
+	graph frag Root Locus
+	{
+		color #ffffffff
+
+		dock 0
+
+		shader frag
+		{
+			vec2 s = pos;
+			vec2 I = vec2(1.0, 0.0);
+			vec2 G = cpx_div(cpx_mul(s+I,cpx_mul(s,s)+2.0*I), cpx_mul(s+3.0*I,s-3.0*I));
+			float angle = fract(atan(G.y, -G.x)/M_PI/2.0 + 0.5) - 0.5;
+			float r = length(G);
+			gl_FragColor = eqn_cpx(vec2(angle,log(r)));
+		}
+	}
+}

@@ -1,0 +1,44 @@
+param 2 0 0 zr
+param 2 0 0 zi
+
+window Mandelbrot set
+{
+	view -1.49969, 0.172213; 0.00714413
+
+	graph frag z := z^2 + c
+	{
+		param zr = zr
+		param zi = zi
+
+		color #ffffffff
+
+		shader frag
+		{
+			gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+			
+			vec2 z = vec2(zr, zi);
+			vec2 c = pos;
+			
+			for (int i = 0; i < 40; i++)
+			{
+			    z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
+			    if (dot(z, z) > 6.0)
+			    {
+			        gl_FragColor = vec4(hsv2rgb(vec3(float(i)/20.0, 1.0, 0.5)), 1.0);
+			        c = vec2(0.0, 0.0);
+			        z = vec2(0.0, 0.0);
+			    }
+			}
+		}
+	}
+
+	graph frag Graph 1
+	{
+		color #ffffffff
+
+		shader frag
+		{
+			gl_FragColor = eqn();
+		}
+	}
+}

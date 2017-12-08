@@ -1,0 +1,22 @@
+
+window igraph 0
+{
+	view 0.906922, 1.77515; 0.0407025
+
+	graph frag Graph 0
+	{
+		color #ffffffff
+
+		shader frag
+		{
+			vec2 a = -cpx_log(pos);
+			vec2 f = vec2(0.0,0.0);
+			for (float i = 1.0; i < 20.0; i++)
+			{
+			    f += cpx_exp(cpx_mul(pos,vec2(log(i),0.0)));
+			}
+			f /= length(f);
+			gl_FragColor = cpx_plot(f);
+		}
+	}
+}

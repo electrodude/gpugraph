@@ -1,0 +1,31 @@
+param 2 0 0 C1
+param 2 0 0 C2
+param 2 0 0 C3
+
+window gpugraph 0
+{
+	view 0, 0; 0.0025
+
+	graph frag Graph 0
+	{
+		param C1 = C1
+		param C2 = C2
+		param C3 = C3
+
+		color #ffffffff
+
+		dock 0
+
+		shader frag
+		{
+			float x = pos.x;
+			float y = pos.y;
+			gl_FragColor = eqn(
+			      C1*exp(x)
+			    + C2*exp(-x/2.0)*sin(x*sqrt(3.0)/2.0)
+			    + C3*exp(-x/2.0)*cos(x*sqrt(3.0)/2.0)
+			    - y
+			);
+		}
+	}
+}

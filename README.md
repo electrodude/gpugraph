@@ -1,0 +1,35 @@
+# gpugraph
+
+GPU-based graphing calculator
+
+Supports complex things like implicit equations, intensity charts, complex-plane
+graphs, root locus plots, and the like, all with animation, all on the GPU.
+
+Currently requires you to write some GLSL yourself.
+
+See `graphs/*.txt` for examples.
+
+# TODO
+
+* Saving and loading multiple sessions
+  * Group windows per session
+* Lock/Unlock x-y scrolling
+* Don't require user to write GLSL
+* Iterative functions
+  * Won't happen until I get a GPU that can do geometry shaders
+* More options for parameters
+  * Configurable slider range
+  * Better alternative to stupid wrap-around behavior
+  * Multidimensional (vec{2,3,4}) parameters
+    * Draggable points
+  * Replace x, x', x'', etc. with numerical diffeq solver
+    * Would allow e.g. sine wave: dx/dt = y, dy/dt = -x
+* Computer Algebra System
+  * Automatically generate Laplace transform plots from time domain functions,
+    and vice versa
+
+# BUGS
+* Delete graphs/nuklear window drawing order
+* Don't hardcode shader uniform IDs.
+* Show compile errors in GUI
+* Less clunky GUI

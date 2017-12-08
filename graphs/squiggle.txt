@@ -1,0 +1,44 @@
+param 2 0 0 z
+
+window gpugraph 0
+{
+	view 6.48793, -5.18008; 0.0210372
+
+	graph frag Intensity
+	{
+		param z = z
+
+		color #ffffffff
+
+		dock 1
+
+		shader frag
+		{
+			float x = pos.x;
+			float y = pos.y;
+			float f = cos(x*y*M_PI) + sin(x*M_PI) + sin(y*M_PI) - (x*cos(y)+y*cos(x) - z);
+			
+			//gl_FragColor = eqn(f);
+			gl_FragColor = cpx_plot(vec2(f, 0.0));
+		}
+	}
+
+	graph frag Level Curve
+	{
+		param z = z
+
+		color #ffffffff
+
+		dock 1
+
+		shader frag
+		{
+			float x = pos.x;
+			float y = pos.y;
+			float f = cos(x*y*M_PI) + sin(x*M_PI) + sin(y*M_PI) - (x*cos(y)+y*cos(x) - z);
+			
+			gl_FragColor = eqn(f);
+			//gl_FragColor = cpx_plot(vec2(f, 0.0));
+		}
+	}
+}

@@ -1,0 +1,58 @@
+param 1 -0.1 p1x
+param 1 -0.89 p1y
+param 1 0.1 p2x
+param 1 0.88 p2y
+
+window Time Domain
+{
+	view 250.215, 3.41696; 0.490926
+
+	graph frag Graph 0
+	{
+		param p1x = p1x
+		param p1y = p1y
+		param p2x = p2x
+		param p2y = p2y
+
+		color #ffffffff
+
+		dock 0
+
+		shader frag
+		{
+			float x = pos.x;
+			float y = pos.y;
+			vec2 p1 = vec2(p1x, p1y);
+			vec2 p2 = vec2(p2x, p2y);
+			gl_FragColor = eqn_cpx(cpx_exp(p1*x) - cpx_exp(p2*x) - y*(p1 - p2+vec2(0.00010,0.0)));
+		}
+	}
+}
+
+window Laplace Domain
+{
+	view 1.16645, 0.0127902; 0.0118971
+
+	graph frag Graph 1
+	{
+		param p1x = p1x
+		param p1y = p1y
+		param p2x = p2x
+		param p2y = p2y
+
+		color #ffffffff
+
+		dock 1
+
+		shader frag
+		{
+			vec2 s = pos;
+			vec2 p1 = vec2(p1x, p1y);
+			vec2 p2 = vec2(p2x, p2y);
+			vec2 n = vec2(1.0, 0.0);
+			vec2 d = cpx_mul(s - p1, s - p2);
+			vec2 H = cpx_div(n, d);
+			gl_FragColor = cpx_plot(H);
+		}
+	}
+}

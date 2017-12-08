@@ -1,0 +1,60 @@
+param 2 1.91685 0 n1
+param 2 -0.344827 0 n0
+param 2 5.17931 0 d2
+param 2 7.6 0 d1
+param 2 4.98621 0 d0
+param 2 0 0 xi
+
+window gpugraph 0
+{
+	view 0.605838, 1.80052; 0.0142434
+
+	graph frag (s^2 + n1*s + n0)/(s^3 + d2*s^2 + d1*s + d0)
+	{
+		param n1 = n1
+		param n0 = n0
+		param d2 = d2
+		param d1 = d1
+		param d0 = d0
+
+		color #ffffffff
+
+		dock 1
+
+		shader frag
+		{
+			vec2 s = pos;
+			vec2 I = vec2(1.0, 0.0);
+			vec2 n = cpx_mul(s, s + n1*I) + n0*I;
+			vec2 d = cpx_mul(s, cpx_mul(s, s + d2*I) + d1*I) + d0*I;
+			vec2 H = cpx_div(n, d);
+			gl_FragColor = cpx_plot(H);
+		}
+	}
+
+	graph frag Graph 1
+	{
+		param n1 = n1
+		param n0 = n0
+		param d2 = d2
+		param d1 = d1
+		param d0 = d0
+		param xi = xi
+
+		color #ffffffff
+
+		dock 1
+
+		shader frag
+		{
+			float x = pos.x;
+			float y = pos.y;
+			vec2 s = vec2(x, xi);
+			vec2 I = vec2(1.0, 0.0);
+			vec2 n = cpx_mul(s, s + n1*I) + n0*I;
+			vec2 d = cpx_mul(s, cpx_mul(s, s + d2*I) + d1*I) + d0*I;
+			vec2 H = cpx_div(n, d);
+			gl_FragColor = eqn_cpx(H - vec2(y, 0.0));
+		}
+	}
+}
