@@ -31,7 +31,7 @@ void main(void)
 		line = max(line, grid_intensity[i] * gridcomponent(pos, grid_scale[i]));
 	}
 
-	gl_FragColor = vec4(line);
+	gl_FragColor = vec4(vec3(line), line*0.9);
 	//gl_FragColor = vec4(vec3(sqrt(line)),line);
 	//gl_FragColor = vec4(1.0, 1.0, 1.0, line);
 	//gl_FragColor = vec4(hsv2rgb(vec3(line, 1.0, 0.5)), line);
