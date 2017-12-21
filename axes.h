@@ -55,6 +55,11 @@ struct graphics_axes
 
 	float grid_scale[GRID_ORDERS];
 	float grid_intensity[GRID_ORDERS];
+
+	int uniform_origin;
+	int uniform_scale;
+	int uniform_grid_scale;
+	int uniform_grid_intensity;
 };
 
 void graphics_axes_new(struct graphics_axes *axes);

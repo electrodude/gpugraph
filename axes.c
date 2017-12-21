@@ -23,11 +23,15 @@ void graphics_axes_new(struct graphics_axes *axes)
 	graphics_shader_add_file    (&axes->grid_shader, GL_FRAGMENT_SHADER, aem_stringbuf_get(&path));
 	aem_stringbuf_dtor(&path);
 	graphics_shader_program_link(&axes->grid_shader);
+	axes->uniform_origin = glGetUniformLocation(axes->grid_shader.program, "origin");
+	axes->uniform_scale = glGetUniformLocation(axes->grid_shader.program, "scale");
+	axes->uniform_grid_scale = glGetUniformLocation(axes->grid_shader.program, "grid_scale");
+	axes->uniform_grid_intensity = glGetUniformLocation(axes->grid_shader.program, "grid_intensity");
 #if GRAPHICS_AXES_DEBUG
-	printf("axes location(origin) = %d\n", glGetUniformLocation(axes->grid_shader.program, "origin"));
-	printf("axes location(scale) = %d\n", glGetUniformLocation(axes->grid_shader.program, "scale"));
-	printf("axes location(grid_scale) = %d\n", glGetUniformLocation(axes->grid_shader.program, "grid_scale"));
-	printf("axes location(grid_intensity) = %d\n", glGetUniformLocation(axes->grid_shader.program, "grid_intensity"));
+	printf("axes location(origin) = %d\n", axes->uniform_origin);
+	printf("axes location(scale) = %d\n", axes->uniform_scale);
+	printf("axes location(grid_scale) = %d\n", axes->uniform_grid_scale);
+	printf("axes location(grid_intensity) = %d\n", axes->uniform_grid_intensity);
 #endif
 	if (axes->grid_shader.status != GRAPHICS_SHADER_PROGRAM_LINKED) abort();
 }
@@ -98,10 +102,10 @@ void graphics_axes_shader_render(struct graphics_axes *axes)
 	glTexCoordPointer(2, GL_FLOAT, 2*sizeof(GLfloat), vertices);
 
 	graphics_check_gl_error("graphics_axes_shader_render: pre glUniform*");
-	glUniform2f(0, axes->xmid, axes->ymid);
-	glUniform2f(1, axes->dp*axes->width*0.5, axes->dp*axes->height*0.5);
-	glUniform1fv(2, GRID_ORDERS, axes->grid_scale);
-	glUniform1fv(2 + GRID_ORDERS, GRID_ORDERS, axes->grid_intensity);
+	glUniform2f(axes->uniform_origin, axes->xmid, axes->ymid);
+	glUniform2f(axes->uniform_scale, axes->dp*axes->width*0.5, axes->dp*axes->height*0.5);
+	glUniform1fv(axes->uniform_grid_scale, GRID_ORDERS, axes->grid_scale);
+	glUniform1fv(axes->uniform_grid_intensity, GRID_ORDERS, axes->grid_intensity);
 	graphics_check_gl_error("graphics_axes_shader_render: post glUniform*");
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
