@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "stringbuf.h"
+#include "aem/stringbuf.h"
 
 #include "graphics.h"
 
@@ -70,7 +70,7 @@ int graphics_shader_program_dtor(struct graphics_shader_program *program)
 	return 0;
 }
 
-int graphics_shader_add(struct graphics_shader_program *program, GLenum type, struct stringslice source)
+int graphics_shader_add(struct graphics_shader_program *program, GLenum type, struct aem_stringslice source)
 {
 	if (program->status != GRAPHICS_SHADER_PROGRAM_CONSTRUCTING)
 	{
@@ -79,7 +79,7 @@ int graphics_shader_add(struct graphics_shader_program *program, GLenum type, st
 	}
 
 	const char *p = source.start;
-	GLint length = stringslice_len(&source);
+	GLint length = aem_stringslice_len(&source);
 
 	graphics_check_gl_error("pre compile");
 
@@ -130,13 +130,13 @@ int graphics_shader_add_file(struct graphics_shader_program *program, GLenum typ
 		return -1;
 	}
 
-	struct stringbuf source = STRINGBUF_EMPTY;
-	stringbuf_file_read(&source, fp);
+	struct aem_stringbuf source = AEM_STRINGBUF_EMPTY;
+	aem_stringbuf_file_read(&source, fp);
 	fclose(fp);
 
-	int shader = graphics_shader_add(program, type, stringslice_new_str(source));
+	int shader = graphics_shader_add(program, type, aem_stringslice_new_str(&source));
 
-	stringbuf_dtor(&source);
+	aem_stringbuf_dtor(&source);
 
 	return shader;
 }

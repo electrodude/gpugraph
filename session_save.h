@@ -3,15 +3,15 @@
 
 #include <stdio.h>
 
-#include "stringbuf.h"
+#include "aem/stringbuf.h"
 
-void session_save_serialize(struct stringbuf *str);
+void session_save_serialize(struct aem_stringbuf *str);
 
 void session_save_file(FILE *fp);
 
 int session_save_path(const char *path);
 
-extern struct stringbuf session_path;
+extern struct aem_stringbuf session_path;
 
 int session_save_curr(void);
 

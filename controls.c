@@ -3,7 +3,7 @@
 #include <math.h>
 #include <ctype.h>
 
-#include "linked_list.h"
+#include "aem/linked_list.h"
 
 #include "graphics.h"
 
@@ -84,11 +84,11 @@ struct nk_rect graphics_util_nk_rect_check(struct nk_rect bounds, struct nk_vec2
 struct graphics_graph_parameter graphics_graph_parameters;
 static int param_id_next = 0;
 
-struct graphics_graph_parameter *graphics_graph_parameter_lookup(struct stringslice name)
+struct graphics_graph_parameter *graphics_graph_parameter_lookup(struct aem_stringslice name)
 {
-	LL_FOR_ALL(param, &graphics_graph_parameters, prev, next)
+	AEM_LL_FOR_ALL(param, &graphics_graph_parameters, prev, next)
 	{
-		if (stringslice_match(&name, stringbuf_get(&param->name)))
+		if (aem_stringslice_match(&name, aem_stringbuf_get(&param->name)))
 		{
 			return param;
 		}
@@ -101,7 +101,7 @@ struct graphics_graph_parameter *graphics_graph_parameter_new(size_t count)
 {
 	struct graphics_graph_parameter *param = malloc(sizeof(*param));
 
-	stringbuf_new_at(&param->name);
+	aem_stringbuf_init(&param->name);
 
 	param->count = count;
 
@@ -116,13 +116,13 @@ struct graphics_graph_parameter *graphics_graph_parameter_new(size_t count)
 
 	param->id = param_id_next++;
 
-	stringbuf_putc(&param->name, 't');
-	stringbuf_putnum(&param->name, 10, param->id);
+	aem_stringbuf_putc(&param->name, 't');
+	aem_stringbuf_putnum(&param->name, 10, param->id);
 
 	param->enable = 1;
 	param->animate = 1;
 
-	LL_INSERT_BEFORE(&graphics_graph_parameters, param, prev, next);
+	AEM_LL_INSERT_BEFORE(&graphics_graph_parameters, param, prev, next);
 
 #if GRAPHICS_GRAPH_PARAMETER_DEBUG
 	fprintf(stderr, "param %p: new\n", param);
@@ -133,7 +133,7 @@ struct graphics_graph_parameter *graphics_graph_parameter_new(size_t count)
 
 void graphics_graph_parameter_free(struct graphics_graph_parameter *param)
 {
-	LL_REMOVE(param, prev, next);
+	AEM_LL_REMOVE(param, prev, next);
 
 #if GRAPHICS_GRAPH_PARAMETER_DEBUG
 	fprintf(stderr, "param %p: free\n", param);
@@ -141,7 +141,7 @@ void graphics_graph_parameter_free(struct graphics_graph_parameter *param)
 
 	free(param->values);
 
-	stringbuf_dtor(&param->name);
+	aem_stringbuf_dtor(&param->name);
 
 	free(param);
 }
@@ -204,7 +204,7 @@ void graphics_graph_parameter_set_count(struct graphics_graph_parameter *param, 
 	param->count = count;
 }
 
-void graphics_graph_parameter_draw(struct graphics_graph_parameter *param, struct stringbuf *name, struct nk_context *ctx)
+void graphics_graph_parameter_draw(struct graphics_graph_parameter *param, struct aem_stringbuf *name, struct nk_context *ctx)
 {
 	if (!param->enable) return;
 
@@ -213,8 +213,8 @@ void graphics_graph_parameter_draw(struct graphics_graph_parameter *param, struc
 	nk_layout_row_dynamic(ctx, 20, 1);
 	for (size_t i = 0; i < param->count; i++)
 	{
-		nk_property_float(ctx, stringbuf_get(name), -INFINITY, &param->values[i], INFINITY, 0.001f, 0.000001f);
-		stringbuf_putc(name, '\'');
+		nk_property_float(ctx, aem_stringbuf_get(name), -INFINITY, &param->values[i], INFINITY, 0.001f, 0.000001f);
+		aem_stringbuf_putc(name, '\'');
 		nk_slider_float(ctx, roundf(param->values[i])-0.6f, &param->values[i], roundf(param->values[i])+0.6f, 0.0000001f);
 	}
 
@@ -249,7 +249,7 @@ int graphics_graph_parameter_update_all(float dt)
 {
 	int animating = 0;
 
-	LL_FOR_ALL(param, &graphics_graph_parameters, prev, next)
+	AEM_LL_FOR_ALL(param, &graphics_graph_parameters, prev, next)
 	{
 		if (graphics_graph_parameter_update(param, dt))
 		{
@@ -262,24 +262,24 @@ int graphics_graph_parameter_update_all(float dt)
 
 // graph parameter view
 
-struct graphics_graph_parameter_view *graphics_graph_parameter_view_new_at(struct graphics_graph_parameter_view *view, struct stringslice name, struct graphics_graph_parameter *param)
+struct graphics_graph_parameter_view *graphics_graph_parameter_view_new_at(struct graphics_graph_parameter_view *view, struct aem_stringslice name, struct graphics_graph_parameter *param)
 {
 	view->param = NULL;
 	graphics_graph_parameter_ref(&view->param, param);
 
-	stringbuf_new_at(&view->name);
-	stringbuf_append_stringslice(&view->name, name);
+	aem_stringbuf_init(&view->name);
+	aem_stringbuf_append_stringslice(&view->name, name);
 
 	return view;
 }
 
 int graphics_graph_parameter_view_dtor(struct graphics_graph_parameter_view *view)
 {
-	LL_REMOVE(view, prev, next);
+	AEM_LL_REMOVE(view, prev, next);
 
 	graphics_graph_parameter_unref(view->param);
 
-	stringbuf_dtor(&view->name);
+	aem_stringbuf_dtor(&view->name);
 
 	return 0;
 }
@@ -302,12 +302,12 @@ static int graphics_graph_id_next = 0;
 
 struct graphics_graph *graphics_graph_new_at(struct graphics_graph *graph)
 {
-	LL_INIT(&graph->params, prev, next);
+	AEM_LL_INIT(&graph->params, prev, next);
 
 	graphics_shader_program_new(&graph->eqn_shader);
 
-	stringbuf_new_prealloc_at(&graph->eqn, 512);
-	stringbuf_new_prealloc_at(&graph->name, 32);
+	aem_stringbuf_init_prealloc(&graph->eqn, 512);
+	aem_stringbuf_init_prealloc(&graph->name, 32);
 
 	graph->prev = NULL;
 	graph->next = NULL;
@@ -326,10 +326,10 @@ struct graphics_graph *graphics_graph_new_at(struct graphics_graph *graph)
 
 	graph->action = GRAPHICS_GRAPH_ACTION_NONE;
 
-	stringbuf_puts(&graph->name, "Graph ");
-	stringbuf_putnum(&graph->name, 10, graph->id);
+	aem_stringbuf_puts(&graph->name, "Graph ");
+	aem_stringbuf_putnum(&graph->name, 10, graph->id);
 
-	stringbuf_puts(&graph->eqn, "float x = pos.x;\nfloat y = pos.y;\ngl_FragColor = eqn(x*x + y*y - 1.0);\n"); // circle of radius 1.0
+	aem_stringbuf_puts(&graph->eqn, "float x = pos.x;\nfloat y = pos.y;\ngl_FragColor = eqn(x*x + y*y - 1.0);\n"); // circle of radius 1.0
 
 	graphics_graph_setup(graph);
 
@@ -338,17 +338,17 @@ struct graphics_graph *graphics_graph_new_at(struct graphics_graph *graph)
 
 void graphics_graph_dtor(struct graphics_graph *graph)
 {
-	LL_REMOVE(graph, prev, next);
+	AEM_LL_REMOVE(graph, prev, next);
 
-	LL_FOR_ALL(view, &graph->params, prev, next)
+	AEM_LL_FOR_ALL(view, &graph->params, prev, next)
 	{
 		struct graphics_graph_parameter *param = view->param;
 
 		graphics_graph_parameter_view_free(view);
 	}
 	graphics_shader_program_dtor(&graph->eqn_shader);
-	stringbuf_dtor(&graph->name);
-	stringbuf_dtor(&graph->eqn);
+	aem_stringbuf_dtor(&graph->name);
+	aem_stringbuf_dtor(&graph->eqn);
 }
 
 void graphics_graph_free(struct graphics_graph *graph)
@@ -364,13 +364,13 @@ void graphics_graph_free(struct graphics_graph *graph)
 void graphics_graph_setup(struct graphics_graph *graph)
 {
 #if GRAPHICS_GRAPH_SETUP_DEBUG
-	printf("new function for %s:\n", stringbuf_get(&graph->name));
-	puts(stringbuf_get(&graph->eqn));
+	printf("new function for %s:\n", aem_stringbuf_get(&graph->name));
+	puts(aem_stringbuf_get(&graph->eqn));
 #endif
 
-	struct stringbuf frag_shader;
-	stringbuf_new_prealloc_at(&frag_shader, 4096);
-	stringbuf_puts(&frag_shader, "#version 120\n" GLSL(
+	struct aem_stringbuf frag_shader;
+	aem_stringbuf_init_prealloc(&frag_shader, 4096);
+	aem_stringbuf_puts(&frag_shader, "#version 120\n" GLSL(
 		const int GRID_ORDERS = 5;
 
 		uniform vec2 origin;
@@ -380,16 +380,16 @@ void graphics_graph_setup(struct graphics_graph *graph)
 
 		uniform vec4 plot_color;
 	));
-	stringbuf_putc(&frag_shader, '\n');
-	LL_FOR_ALL(view, &graph->params, prev, next)
+	aem_stringbuf_putc(&frag_shader, '\n');
+	AEM_LL_FOR_ALL(view, &graph->params, prev, next)
 	{
 		struct graphics_graph_parameter *param = view->param;
 
-		stringbuf_puts(&frag_shader, "uniform float ");
-		stringbuf_append(&frag_shader, &view->name);
-		stringbuf_puts(&frag_shader, ";\n");
+		aem_stringbuf_puts(&frag_shader, "uniform float ");
+		aem_stringbuf_append(&frag_shader, &view->name);
+		aem_stringbuf_puts(&frag_shader, ";\n");
 	}
-	stringbuf_puts(&frag_shader, GLSL(
+	aem_stringbuf_puts(&frag_shader, GLSL(
 		const float M_PI = 3.141592653589793238;
 
 		vec2 cpx_conj(in vec2 a)
@@ -468,32 +468,32 @@ void graphics_graph_setup(struct graphics_graph *graph)
 		{
 			vec2 pos = gl_TexCoord[0].st;
 	));
-	stringbuf_putc(&frag_shader, '\n');
-	stringbuf_append(&frag_shader, &graph->eqn);
-	stringbuf_puts(&frag_shader, GLSL(
+	aem_stringbuf_putc(&frag_shader, '\n');
+	aem_stringbuf_append(&frag_shader, &graph->eqn);
+	aem_stringbuf_puts(&frag_shader, GLSL(
 		}
 	));
 
 #if GRAPHICS_GRAPH_SETUP_DEBUG >= 2
 	puts("new graph fragment shader:");
-	puts(stringbuf_get(&frag_shader));
+	puts(aem_stringbuf_get(&frag_shader));
 #endif
 
 	graphics_shader_program_dtor(&graph->eqn_shader);
 	graphics_shader_program_new (&graph->eqn_shader);
-	STRINGBUF_ON_STACK(path, graphics_axes_shader_path.n+16);
-	stringbuf_append(&path, &graphics_axes_shader_path);
+	AEM_STRINGBUF_ON_STACK(path, graphics_axes_shader_path.n+16);
+	aem_stringbuf_append(&path, &graphics_axes_shader_path);
 	size_t i = path.n;
-	stringbuf_puts(&path, "shader.v.glsl");
-	graphics_shader_add_file    (&graph->eqn_shader, GL_VERTEX_SHADER  , stringbuf_get(&path));
-	stringbuf_dtor(&path);
-	graphics_shader_add         (&graph->eqn_shader, GL_FRAGMENT_SHADER, stringslice_new_str(frag_shader));
-	stringbuf_dtor(&frag_shader);
+	aem_stringbuf_puts(&path, "shader.v.glsl");
+	graphics_shader_add_file    (&graph->eqn_shader, GL_VERTEX_SHADER  , aem_stringbuf_get(&path));
+	aem_stringbuf_dtor(&path);
+	graphics_shader_add         (&graph->eqn_shader, GL_FRAGMENT_SHADER, aem_stringslice_new_str(&frag_shader));
+	aem_stringbuf_dtor(&frag_shader);
 	graphics_shader_program_link(&graph->eqn_shader);
 	if (graph->eqn_shader.status != GRAPHICS_SHADER_PROGRAM_LINKED) return;
 
 #if 0
-	LL_FOR_ALL(view, &graph->params, prev, next)
+	AEM_LL_FOR_ALL(view, &graph->params, prev, next)
 	{
 		struct graphics_graph_parameter *param = view->param;
 
@@ -522,11 +522,11 @@ void graphics_graph_setup(struct graphics_graph *graph)
 	}
 	free(name);
 
-	LL_FOR_ALL(view, &graph->params, prev, next)
+	AEM_LL_FOR_ALL(view, &graph->params, prev, next)
 	{
 		struct graphics_graph_parameter *param = view->param;
 
-		const char *name = stringbuf_get(&view->name);
+		const char *name = aem_stringbuf_get(&view->name);
 		GLint position = glGetUniformLocation(graph->eqn_shader.program, name);
 		view->uniform = position;
 #if GRAPHICS_GRAPH_SETUP_DEBUG >= 2
@@ -547,7 +547,7 @@ void graphics_graph_render(struct graphics_graph *graph, struct graphics_window 
 	glUseProgram(graph->eqn_shader.program);
 
 	glUniform4fv(2, 1, graph->color);
-	LL_FOR_ALL(view, &graph->params, prev, next)
+	AEM_LL_FOR_ALL(view, &graph->params, prev, next)
 	{
 		struct graphics_graph_parameter *param = view->param;
 
@@ -564,7 +564,7 @@ int graphics_graph_update(struct graphics_graph *graph)
 {
 	int animating = 0;
 
-	LL_FOR_ALL(view, &graph->params, prev, next)
+	AEM_LL_FOR_ALL(view, &graph->params, prev, next)
 	{
 		struct graphics_graph_parameter *param = view->param;
 
@@ -584,7 +584,7 @@ void graphics_graph_draw(struct graphics_graph *graph, struct graphics_window *w
 
 	char id[64];
 	snprintf(id, 64, "%x", graph->id);
-	if (nk_begin_titled(ctx, id, stringbuf_get(&graph->name), nk_rect(70, 70, 360, 430),
+	if (nk_begin_titled(ctx, id, aem_stringbuf_get(&graph->name), nk_rect(70, 70, 360, 430),
 	             NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|
 	             NK_WINDOW_MINIMIZABLE|NK_WINDOW_CLOSABLE|NK_WINDOW_TITLE))
 	{
@@ -611,7 +611,7 @@ void graphics_graph_draw(struct graphics_graph *graph, struct graphics_window *w
 			}
 
 			{
-				stringbuf_reserve(&graph->name, graph->name.n);
+				aem_stringbuf_reserve(&graph->name, graph->name.n);
 				nk_layout_row_dynamic(ctx, 20, 1);
 				int n = graph->name.n;
 				nk_edit_string(ctx, NK_EDIT_FIELD, graph->name.s, &n, graph->name.maxn-1, nk_filter_default);
@@ -625,7 +625,7 @@ void graphics_graph_draw(struct graphics_graph *graph, struct graphics_window *w
 			}
 
 			{
-				stringbuf_reserve(&graph->eqn, graph->eqn.n);
+				aem_stringbuf_reserve(&graph->eqn, graph->eqn.n);
 				nk_layout_row_dynamic(ctx, 200, 1);
 				int n = graph->eqn.n;
 				nk_flags active = nk_edit_string(ctx, NK_EDIT_BOX, graph->eqn.s, &n, graph->eqn.maxn, nk_filter_default);
@@ -639,19 +639,19 @@ void graphics_graph_draw(struct graphics_graph *graph, struct graphics_window *w
 				}
 			}
 
-			LL_FOR_ALL(view, &graph->params, prev, next)
+			AEM_LL_FOR_ALL(view, &graph->params, prev, next)
 			{
 				struct graphics_graph_parameter *param = view->param;
 
-				stringbuf_reserve(&view->name, view->name.n);
+				aem_stringbuf_reserve(&view->name, view->name.n);
 				nk_layout_row_dynamic(ctx, 20, 2);
 				int n = view->name.n;
 				nk_edit_string(ctx, NK_EDIT_FIELD, view->name.s, &n, view->name.maxn, nk_filter_default);
 				view->name.n = n;
 				if (view->param->refs == 1)
 				{
-					stringbuf_reset(&view->param->name);
-					stringbuf_append(&view->param->name, &view->name);
+					aem_stringbuf_reset(&view->param->name);
+					aem_stringbuf_append(&view->param->name, &view->name);
 				}
 				if (nk_button_label(ctx, "Delete"))
 				{
@@ -662,13 +662,13 @@ void graphics_graph_draw(struct graphics_graph *graph, struct graphics_window *w
 			nk_layout_row_dynamic(ctx, 20, 2);
 			if (nk_combo_begin_label(ctx, "Reference Parameter", nk_vec2(150,200)))
 			{
-				LL_FOR_ALL(param, &graphics_graph_parameters, prev, next)
+				AEM_LL_FOR_ALL(param, &graphics_graph_parameters, prev, next)
 				{
 					nk_layout_row_dynamic(ctx, 20, 1);
 					if (nk_combo_item_text(ctx, param->name.s, param->name.n, NK_TEXT_ALIGN_LEFT))
 					{
-						struct graphics_graph_parameter_view *view2 = graphics_graph_parameter_view_new(stringslice_new_str(param->name), param);
-						LL_INSERT_BEFORE(&graph->params, view2, prev, next);
+						struct graphics_graph_parameter_view *view2 = graphics_graph_parameter_view_new(aem_stringslice_new_str(&param->name), param);
+						AEM_LL_INSERT_BEFORE(&graph->params, view2, prev, next);
 					}
 				}
 
@@ -678,8 +678,8 @@ void graphics_graph_draw(struct graphics_graph *graph, struct graphics_window *w
 			if (nk_button_label(ctx, "Add Parameter"))
 			{
 				struct graphics_graph_parameter *param = graphics_graph_parameter_new(2);
-				struct graphics_graph_parameter_view *view = graphics_graph_parameter_view_new(stringslice_new_str(param->name), param);
-				LL_INSERT_BEFORE(&graph->params, view, prev, next);
+				struct graphics_graph_parameter_view *view = graphics_graph_parameter_view_new(aem_stringslice_new_str(&param->name), param);
+				AEM_LL_INSERT_BEFORE(&graph->params, view, prev, next);
 			}
 
 			nk_tree_pop(ctx);
@@ -687,7 +687,7 @@ void graphics_graph_draw(struct graphics_graph *graph, struct graphics_window *w
 
 		if (nk_tree_push(ctx, NK_TREE_NODE, "Parameters", NK_MINIMIZED))
 		{
-			LL_FOR_ALL(view, &graph->params, prev, next)
+			AEM_LL_FOR_ALL(view, &graph->params, prev, next)
 			{
 				graphics_graph_parameter_view_draw(view, ctx);
 			}
@@ -706,7 +706,7 @@ void graphics_graph_draw(struct graphics_graph *graph, struct graphics_window *w
 void graphics_graph_draw_dock(struct graphics_graph *graph, struct nk_context *ctx)
 {
 #if 0
-	if (nk_tree_push_id(ctx, NK_TREE_NODE, stringbuf_get(&graph->name), NK_MINIMIZED, graph->id))
+	if (nk_tree_push_id(ctx, NK_TREE_NODE, aem_stringbuf_get(&graph->name), NK_MINIMIZED, graph->id))
 	{
 		nk_checkbox_label(ctx, "Docked", &graph->dock);
 
@@ -715,7 +715,7 @@ void graphics_graph_draw_dock(struct graphics_graph *graph, struct nk_context *c
 #else
 	nk_layout_row_dynamic(ctx, 20, 2);
 	int undock = !graph->dock;
-	nk_checkbox_label(ctx, stringbuf_get(&graph->name), &undock);
+	nk_checkbox_label(ctx, aem_stringbuf_get(&graph->name), &undock);
 	graph->dock = !undock;
 	nk_checkbox_label(ctx, "Enable", &graph->enable);
 #endif

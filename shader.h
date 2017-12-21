@@ -1,7 +1,7 @@
 #ifndef SHADER_H
 #define SHADER_H
 
-#include "stringslice.h"
+#include "aem/stringslice.h"
 
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
@@ -22,7 +22,7 @@ int graphics_shader_program_new(struct graphics_shader_program *program);
 int graphics_shader_program_link(struct graphics_shader_program *program);
 int graphics_shader_program_dtor(struct graphics_shader_program *program);
 
-int graphics_shader_add(struct graphics_shader_program *program, GLenum type, struct stringslice source);
+int graphics_shader_add(struct graphics_shader_program *program, GLenum type, struct aem_stringslice source);
 int graphics_shader_add_file(struct graphics_shader_program *program, GLenum type, const char *path);
 
 #endif /* SHADER_H */

@@ -13,7 +13,7 @@
 #define NK_GLFW_GL2_IMPLEMENTATION
 #include "graph_nuklear.h"
 
-#include "linked_list.h"
+#include "aem/linked_list.h"
 
 #include "controls.h"
 
@@ -43,7 +43,7 @@ int graphics_init(void)
 		return -1;
 	}
 
-	LL_INIT(&graphics_window_list, prev, next);
+	AEM_LL_INIT(&graphics_window_list, prev, next);
 	graphics_window_list.id = -1;
 
 	return 0;
@@ -66,19 +66,19 @@ int graphics_window_init(struct graphics_window *win, const char *title)
 
 	win->nk.userdata = nk_handle_ptr(win);
 
-	stringbuf_new_str_at(&win->title, title);
+	aem_stringbuf_init_cstr(&win->title, title);
 
 	struct nk_font_atlas *atlas;
 	nk_glfw3_font_stash_begin(&win->nk, &atlas);
 	// load fonts here
 	nk_glfw3_font_stash_end(&win->nk);
 
-	LL_INIT(&win->graph_list, prev, next);
+	AEM_LL_INIT(&win->graph_list, prev, next);
 	win->graph_list.id = -1;
 
 	win->id = win_id_next++;
 
-	LL_INSERT_BEFORE(&graphics_window_list, win, prev, next);
+	AEM_LL_INSERT_BEFORE(&graphics_window_list, win, prev, next);
 
 	return 0;
 }
@@ -86,7 +86,7 @@ int graphics_window_init(struct graphics_window *win, const char *title)
 int graphics_window_dtor(struct graphics_window *win)
 {
 	struct graphics_graph *prev = NULL;
-	LL_FOR_ALL(graph, &win->graph_list, prev, next)
+	AEM_LL_FOR_ALL(graph, &win->graph_list, prev, next)
 	{
 		if (prev != NULL) graphics_graph_free(prev);
 		prev = graph;
@@ -97,14 +97,14 @@ int graphics_window_dtor(struct graphics_window *win)
 
 	nk_glfw3_destroy(&win->nk);
 
-	stringbuf_dtor(&win->title);
+	aem_stringbuf_dtor(&win->title);
 
 	return 0;
 }
 
 void graphics_window_update_title(struct graphics_window *win)
 {
-	glfwSetWindowTitle(win->nk.win, stringbuf_get(&win->title));
+	glfwSetWindowTitle(win->nk.win, aem_stringbuf_get(&win->title));
 }
 
 int graphics_window_draw(struct graphics_window *win)
@@ -113,15 +113,15 @@ int graphics_window_draw(struct graphics_window *win)
 
 	int animating = 0;
 
-	LL_FOR_ALL(graph, &win->graph_list, prev, next)
+	AEM_LL_FOR_ALL(graph, &win->graph_list, prev, next)
 	{
 		graphics_graph_draw(graph, win);
 		if (graphics_graph_update(graph)) animating = 1;
 	}
 
 	struct graphics_graph graph_freelist;
-	LL_INIT(&graph_freelist, prev, next);
-	LL_FOR_ALL(graph, &win->graph_list, prev, next)
+	AEM_LL_INIT(&graph_freelist, prev, next);
+	AEM_LL_FOR_ALL(graph, &win->graph_list, prev, next)
 	{
 		enum graphics_graph_action action = graph->action;
 		graph->action = GRAPHICS_GRAPH_ACTION_NONE;
@@ -129,25 +129,23 @@ int graphics_window_draw(struct graphics_window *win)
 		{
 			case GRAPHICS_GRAPH_ACTION_MOVE_UP:
 				if (graph->next == &win->graph_list) break; // already at top; do nothing
-				LL_REMOVE(graph, prev, next); // temporarily remove node from list
-				LL_VERIFY(&win->graph_list, prev, next, assert);
-				LL_INSERT_BEFORE(graph->next->next, graph, prev, next); // and reinsert it below the one below this one
-				LL_VERIFY(&win->graph_list, prev, next, assert);
+				AEM_LL_REMOVE(graph, prev, next); // temporarily remove node from list
+				AEM_LL_INSERT_BEFORE(graph->next->next, graph, prev, next); // and reinsert it below the one below this one
 				graph = graph->prev->prev; // go back to get the one we moved before this one without processing
 				// this one gets processed again after the previous one, but it's fine
 				break;
 
 			case GRAPHICS_GRAPH_ACTION_MOVE_DOWN:
 				if (graph->prev == &win->graph_list) break; // already at bottom; do nothing
-				LL_REMOVE(graph, prev, next); // temporarily remove node from list
-				LL_INSERT_BEFORE(graph->prev, graph, prev, next); // and reinsert it above the one above this one
+				AEM_LL_REMOVE(graph, prev, next); // temporarily remove node from list
+				AEM_LL_INSERT_BEFORE(graph->prev, graph, prev, next); // and reinsert it above the one above this one
 				// repeats the one that used to come before this one, but it's fine
 				break;
 
 			case GRAPHICS_GRAPH_ACTION_CLOSE:
-				LL_REMOVE(graph, prev, next);
+				AEM_LL_REMOVE(graph, prev, next);
 				struct graphics_graph *graph_prev = graph->prev;
-				LL_INSERT_BEFORE(&graph_freelist, graph, prev, next);
+				AEM_LL_INSERT_BEFORE(&graph_freelist, graph, prev, next);
 				graph = graph_prev;
 				break;
 		}
@@ -155,7 +153,7 @@ int graphics_window_draw(struct graphics_window *win)
 
 	while (graph_freelist.next != &graph_freelist)
 	{
-		LL_REMOVE(graph_freelist.next, prev, next);
+		AEM_LL_REMOVE(graph_freelist.next, prev, next);
 	}
 
 	if (nk_begin(ctx, "Window Settings", nk_rect(0, 0, 230, 240),
@@ -168,7 +166,7 @@ int graphics_window_draw(struct graphics_window *win)
 				nk_layout_row_dynamic(ctx, 15, 1);
 				nk_label(ctx, "Path", NK_TEXT_LEFT);
 				nk_layout_row_dynamic(ctx, 25, 1);
-				stringbuf_reserve(&session_path, win->title.n);
+				aem_stringbuf_reserve(&session_path, win->title.n);
 				int n = session_path.n;
 				int updated = nk_edit_string(ctx, NK_EDIT_FIELD, session_path.s, &n, session_path.maxn-1, nk_filter_default);
 				session_path.n = n;
@@ -180,7 +178,7 @@ int graphics_window_draw(struct graphics_window *win)
 			}
 			if (nk_button_label(ctx, "Load"))
 			{
-				LL_FOR_ALL(win, &graphics_window_list, prev, next)
+				AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next)
 				{
 					glfwSetWindowShouldClose(win->nk.win, 1);
 				}
@@ -191,12 +189,12 @@ int graphics_window_draw(struct graphics_window *win)
 			nk_layout_row_dynamic(ctx, 20, 2);
 			if (nk_button_label(ctx, "New"))
 			{
-				LL_FOR_ALL(win, &graphics_window_list, prev, next)
+				AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next)
 				{
 					glfwSetWindowShouldClose(win->nk.win, 1);
 				}
 
-				stringbuf_reset(&session_path);
+				aem_stringbuf_reset(&session_path);
 				struct graphics_window *graph_window_new(void); // from main.c
 				graph_window_new();
 				graphics_window_select(win);
@@ -214,7 +212,7 @@ int graphics_window_draw(struct graphics_window *win)
 			if (nk_button_label(ctx, "New Graph"))
 			{
 				struct graphics_graph *graph = graphics_graph_new();
-				LL_INSERT_BEFORE(&win->graph_list, graph, prev, next);
+				AEM_LL_INSERT_BEFORE(&win->graph_list, graph, prev, next);
 			}
 			if (nk_button_label(ctx, "New Window"))
 			{
@@ -226,7 +224,7 @@ int graphics_window_draw(struct graphics_window *win)
 				nk_layout_row_dynamic(ctx, 15, 1);
 				nk_label(ctx, "Window Title:", NK_TEXT_LEFT);
 				nk_layout_row_dynamic(ctx, 25, 1);
-				stringbuf_reserve(&win->title, win->title.n);
+				aem_stringbuf_reserve(&win->title, win->title.n);
 				int n = win->title.n;
 				int updated = nk_edit_string(ctx, NK_EDIT_FIELD, win->title.s, &n, win->title.maxn-1, nk_filter_default);
 				win->title.n = n;
@@ -257,7 +255,7 @@ int graphics_window_draw(struct graphics_window *win)
 			nk_tree_pop(ctx);
 		}
 
-		LL_FOR_ALL(graph, &win->graph_list, prev, next)
+		AEM_LL_FOR_ALL(graph, &win->graph_list, prev, next)
 		{
 			graphics_graph_draw_dock(graph, ctx);
 		}
@@ -278,7 +276,7 @@ int graphics_window_draw(struct graphics_window *win)
 
 		if (nk_tree_push(ctx, NK_TREE_NODE, "Parameter Settings", NK_MINIMIZED))
 		{
-			LL_FOR_ALL(param, &graphics_graph_parameters, prev, next)
+			AEM_LL_FOR_ALL(param, &graphics_graph_parameters, prev, next)
 			{
 				graphics_graph_parameter_draw_settings(param, ctx);
 			}
@@ -286,7 +284,7 @@ int graphics_window_draw(struct graphics_window *win)
 			nk_tree_pop(ctx);
 		}
 
-		LL_FOR_ALL(param, &graphics_graph_parameters, prev, next)
+		AEM_LL_FOR_ALL(param, &graphics_graph_parameters, prev, next)
 		{
 			graphics_graph_parameter_draw(param, &param->name, ctx);
 		}
@@ -323,7 +321,7 @@ void graphics_window_render(struct graphics_window *win)
 	glOrtho(0.0f, aspect_ratio, 1.0f, 0.0f, -1.0f, 1.0f);
 	graphics_check_gl_error("gl modelview");
 
-	LL_FOR_ALL(graph, &win->graph_list, prev, next)
+	AEM_LL_FOR_ALL(graph, &win->graph_list, prev, next)
 	{
 		graphics_graph_render(graph, win);
 	}

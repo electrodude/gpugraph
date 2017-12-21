@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "linked_list.h"
+#include "aem/linked_list.h"
 
 #include "graphics.h"
 
@@ -79,11 +79,11 @@ struct graphics_window *graph_window_new(void)
 		.hsv = 0,
 	};
 
-	graphics_window_init(win, "igraph");
+	graphics_window_init(win, "gpugraph");
 
-	stringbuf_reset(&win->title);
-	stringbuf_puts(&win->title, "igraph ");
-	stringbuf_putnum(&win->title, 10, win->id);
+	aem_stringbuf_reset(&win->title);
+	aem_stringbuf_puts(&win->title, "gpugraph ");
+	aem_stringbuf_putnum(&win->title, 10, win->id);
 
 	graphics_window_update_title(win);
 
@@ -103,7 +103,7 @@ struct graphics_window *graph_window_new(void)
 	return win;
 }
 
-struct stringbuf graphics_axes_shader_path = {0};
+struct aem_stringbuf graphics_axes_shader_path = {0};
 
 int main(int argc, char **argv)
 {
@@ -120,11 +120,11 @@ int main(int argc, char **argv)
 	}
 
 	// should go somewhere else
-	LL_INIT(&graphics_graph_parameters, prev, next);
+	AEM_LL_INIT(&graphics_graph_parameters, prev, next);
 	graphics_graph_parameters.id = -1;
 
-	stringbuf_reset(&graphics_axes_shader_path);
-	stringbuf_puts(&graphics_axes_shader_path, "/home/albertemanuel/code/c/gpugraph/");
+	aem_stringbuf_reset(&graphics_axes_shader_path);
+	aem_stringbuf_puts(&graphics_axes_shader_path, "/home/albertemanuel/code/c/gpugraph/");
 
 	graphics_init();
 
@@ -157,11 +157,11 @@ int main(int argc, char **argv)
 			animating = 1;
 		}
 
-		LL_FOR_ALL(win, &graphics_window_list, prev, next)
+		AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next)
 		{
 			if (glfwWindowShouldClose(win->nk.win))
 			{
-				LL_REMOVE(win, prev, next);
+				AEM_LL_REMOVE(win, prev, next);
 				graphics_axes_dtor(&win->axes);
 				graphics_window_dtor(win);
 
@@ -169,13 +169,13 @@ int main(int argc, char **argv)
 			}
 		}
 
-		LL_FOR_ALL(win, &graphics_window_list, prev, next)
+		AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next)
 		{
 			graphics_window_render(win);
 
 			if (glfwWindowShouldClose(win->nk.win))
 			{
-				LL_REMOVE(win, prev, next);
+				AEM_LL_REMOVE(win, prev, next);
 				graphics_axes_dtor(&win->axes);
 				graphics_window_dtor(win);
 
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
 			}
 		}
 
-		LL_FOR_ALL(win, &graphics_window_list, prev, next)
+		AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next)
 		{
 			graphics_window_select(win);
 			nk_input_begin(&win->nk.ctx);
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
 			glfwWaitEvents(); // TODO: fix this
 		}
 		graphics_check_gl_error("events");
-		LL_FOR_ALL(win, &graphics_window_list, prev, next)
+		AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next)
 		{
 			graphics_window_select(win);
 			nk_input_end(&win->nk.ctx);
@@ -212,7 +212,7 @@ int main(int argc, char **argv)
 		session_save_path("session_quit.txt");
 	}
 
-	LL_FOR_ALL(win, &graphics_window_list, prev, next)
+	AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next)
 	{
 		graphics_window_dtor(win);
 	}

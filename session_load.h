@@ -3,13 +3,13 @@
 
 #include <stdio.h>
 
-#include "stringslice.h"
+#include "aem/stringslice.h"
 
-int session_load_parse(struct stringslice *p);
+int session_load_parse(struct aem_stringslice *p);
 
 int session_load_file(FILE *fp);
 
-extern struct stringbuf session_path;
+extern struct aem_stringbuf session_path;
 
 int session_load_path(const char *path);
 

@@ -4,7 +4,7 @@
 
 #include "graph_nuklear.h"
 
-#include "stringbuf.h"
+#include "aem/stringbuf.h"
 
 #include "axes.h"
 
@@ -13,15 +13,15 @@
 void graphics_axes_new(struct graphics_axes *axes)
 {
 	graphics_shader_program_new (&axes->grid_shader);
-	STRINGBUF_ON_STACK(path, graphics_axes_shader_path.n+16);
-	stringbuf_append(&path, &graphics_axes_shader_path);
+	AEM_STRINGBUF_ON_STACK(path, graphics_axes_shader_path.n+16);
+	aem_stringbuf_append(&path, &graphics_axes_shader_path);
 	size_t i = path.n;
-	stringbuf_puts(&path, "shader.v.glsl");
-	graphics_shader_add_file    (&axes->grid_shader, GL_VERTEX_SHADER  , stringbuf_get(&path));
+	aem_stringbuf_puts(&path, "shader.v.glsl");
+	graphics_shader_add_file    (&axes->grid_shader, GL_VERTEX_SHADER  , aem_stringbuf_get(&path));
 	path.n = i;
-	stringbuf_puts(&path, "grid_linear.f.glsl");
-	graphics_shader_add_file    (&axes->grid_shader, GL_FRAGMENT_SHADER, stringbuf_get(&path));
-	stringbuf_dtor(&path);
+	aem_stringbuf_puts(&path, "grid_linear.f.glsl");
+	graphics_shader_add_file    (&axes->grid_shader, GL_FRAGMENT_SHADER, aem_stringbuf_get(&path));
+	aem_stringbuf_dtor(&path);
 	graphics_shader_program_link(&axes->grid_shader);
 #if GRAPHICS_AXES_DEBUG
 	printf("axes location(origin) = %d\n", glGetUniformLocation(axes->grid_shader.program, "origin"));

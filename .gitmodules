@@ -4,4 +4,4 @@
 	branch = glfw_events
 [submodule "aem"]
 	path = aem
-	url = https://albertemanuel@aemilani.ddns.net/git/libaem/
+	url = https://aemilani.ddns.net/git/libaem/

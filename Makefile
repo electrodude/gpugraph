@@ -9,23 +9,35 @@ RANLIB=ranlib
 #LDFLAGS+=-g
 CFLAGS+=-O3
 
-SOURCES=$(shell echo main.c session_load.c session_save.c controls.c axes.c shader.c graphics.c nuklear.c stringbuf.c stringslice.c)
+LIBAEM_DIR=aem
+
+LIBS=${LIBAEM_DIR}/libaem.a
+
+SOURCES=main.c session_load.c session_save.c controls.c axes.c shader.c graphics.c nuklear.c
 OBJECTS=$(patsubst %.c,%.o,${SOURCES})
+
+DEPDIR=.deps
+DEPFLAGS=-MD -MP -MF ${DEPDIR}/$*.d
+
+$(shell mkdir -p ${DEPDIR})
 
 all:		graph
 
-clean:
-		rm -vf ${OBJECTS} graph depends.inc
-
-graph:		${OBJECTS}
+graph:		${OBJECTS} ${LIBS}
 		${LD} $^ ${LDFLAGS} -o $@
 
 %.o:		%.c
-		${CC} ${CFLAGS} -c $< -o $@
+		${CC} ${CFLAGS} ${DEPFLAGS} -c $< -o $@
 
-depends.inc:	${SOURCES}
-		${CC} ${CFLAGS} -MM $^ > $@
+clean:
+		rm -vf ${DEPDIR}/*.d ${OBJECTS} graph
+		${MAKE} -C ${LIBAEM_DIR} -w clean
 
-.PHONY:		all clean depends.inc
+${LIBAEM_DIR}/libaem.a:
+		${MAKE} -C ${LIBAEM_DIR} -w libaem.a
 
-include depends.inc
+.PHONY:		${LIBAEM_DIR}/libaem.a
+
+.PHONY:		all clean
+
+include $(wildcard ${DEPDIR}/*.d)

@@ -15,7 +15,7 @@ struct graphics_window
 
 	int hsv;
 
-	struct stringbuf title;
+	struct aem_stringbuf title;
 
 	struct graphics_axes axes;
 
