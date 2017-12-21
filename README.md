@@ -14,7 +14,7 @@ graphs, root locus plots, and the like, all with animation, all on the GPU.
 
 Currently requires you to write some GLSL yourself.
 
-See `graphs/*.txt` for examples.
+See [`graphs/*.txt`](graphs/) for examples.
 
 ## TODO
 

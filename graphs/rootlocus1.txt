@@ -10,7 +10,7 @@ window Root Locus
 
 		color #ffffffff
 
-		dock 0
+		dock 1
 
 		shader frag
 		{
@@ -30,16 +30,14 @@ window Root Locus
 
 		color #ffffffff
 
-		dock 0
+		dock 1
 
 		shader frag
 		{
 			vec2 s = pos;
 			vec2 I = vec2(1.0, 0.0);
 			vec2 G = K*cpx_div(cpx_mul(s + 3.0*I, s+4.0*I), cpx_mul(s + I, s + 2.0*I));
-			float angle = fract(atan(G.y, -G.x)/M_PI/2.0 + 0.5) - 0.5;
-			float r = length(G);
-			gl_FragColor = eqn_cpx(vec2(angle, log(r)));
+			gl_FragColor = root_locus(G);
 		}
 	}
 }

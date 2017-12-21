@@ -1,12 +1,12 @@
-param 2 0 0 z
+param 2 0 0 a
 
-window gpugraph 0
+window cos(x*y*pi) + sin(x*y*pi) + sin(y*pi) = x*cos(y) + y*cos(x) - a
 {
 	view 6.48793, -5.18008; 0.0210372
 
 	graph frag Intensity
 	{
-		param z = z
+		param a = a
 
 		color #ffffffff
 
@@ -16,7 +16,7 @@ window gpugraph 0
 		{
 			float x = pos.x;
 			float y = pos.y;
-			float f = cos(x*y*M_PI) + sin(x*M_PI) + sin(y*M_PI) - (x*cos(y)+y*cos(x) - z);
+			float f = cos(x*y*M_PI) + sin(x*M_PI) + sin(y*M_PI) - (x*cos(y)+y*cos(x) - a);
 			
 			//gl_FragColor = eqn(f);
 			gl_FragColor = cpx_plot(vec2(f, 0.0));
@@ -25,7 +25,7 @@ window gpugraph 0
 
 	graph frag Level Curve
 	{
-		param z = z
+		param a = a
 
 		color #ffffffff
 
@@ -35,7 +35,7 @@ window gpugraph 0
 		{
 			float x = pos.x;
 			float y = pos.y;
-			float f = cos(x*y*M_PI) + sin(x*M_PI) + sin(y*M_PI) - (x*cos(y)+y*cos(x) - z);
+			float f = cos(x*y*M_PI) + sin(x*M_PI) + sin(y*M_PI) - (x*cos(y)+y*cos(x) - a);
 			
 			gl_FragColor = eqn(f);
 			//gl_FragColor = cpx_plot(vec2(f, 0.0));

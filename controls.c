@@ -439,29 +439,41 @@ void graphics_graph_setup(struct graphics_graph *graph)
 			return vec4(hsv2rgb(vec3(degrees(atan(c.y, c.x)) / 360.0, 1.0 - 2.0*abs(intensity - 0.5), intensity)), plot_color.a);
 		}
 
-		float eqn_f(in float f)
+		float eqn_f(in float f, in float w)
 		{
 			float sx = abs((f + dFdx(f)          ) + f);
 			float sy = abs((f           + dFdy(f)) + f);
 			float sb = abs((f + dFdx(f) + dFdy(f)) + f);
 			float sw = abs((f + dFdx(f) + dFdy(f)) + f);
-			float on = fwidth(f) * 0.5 / min(sx, sy);
+			float on = fwidth(f) * w / min(sx, sy);
 			return clamp(on, 0.0, 1.0);
 		}
 
 		vec4 eqn(in float f)
 		{
-			return eqn_f(f)*plot_color;
+			return eqn_f(f, 0.5)*plot_color;
 		}
 
-		vec4 eqn_cpx(in vec2 a)
+		vec4 eqn_cpx_w(in vec2 a, in float w)
 		{
 			float p = mapinf2unit( max(a.y, 0.0));
 			float n = mapinf2unit(-min(a.y, 0.0));
 			float r = n;
 			float g = 1.0 - max(p, n);
 			float b = p;
-			return eqn_f(a.x)*plot_color*vec4(r, g, b , 1.0);
+			return eqn_f(a.x, w)*plot_color*vec4(r, g, b , 1.0);
+		}
+
+		vec4 eqn_cpx(in vec2 a)
+		{
+			return eqn_cpx_w(a, 0.5);
+		}
+
+		vec4 root_locus(in vec2 GH)
+		{
+			float angle = fract(atan(GH.y, -GH.x)/(M_PI*2.0) + 0.5) - 0.5;
+			float r = length(GH);
+			return eqn_cpx_w(vec2(angle, log(r)), 1.5);
 		}
 
 		void main()
