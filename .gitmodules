@@ -2,6 +2,6 @@
 	path = nuklear
 	url = https://github.com/electrodude/nuklear.git
 	branch = glfw_events
-[submodule "aem"]
+[submodule "libaem"]
 	path = aem
-	url = https://aemilani.ddns.net/git/libaem/
+	url = ../libaem/
