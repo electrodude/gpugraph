@@ -33,7 +33,8 @@ void graphics_axes_new(struct graphics_axes *axes)
 	printf("axes location(grid_scale) = %d\n", axes->uniform_grid_scale);
 	printf("axes location(grid_intensity) = %d\n", axes->uniform_grid_intensity);
 #endif
-	if (axes->grid_shader.status != GRAPHICS_SHADER_PROGRAM_LINKED) abort();
+	if (axes->grid_shader.status != GRAPHICS_SHADER_PROGRAM_LINKED)
+		abort();
 }
 
 void graphics_axes_dtor(struct graphics_axes *axes)
@@ -64,15 +65,13 @@ void graphics_axes_recalculate(struct graphics_axes *axes)
 #if 0
 	printf("grid_scl_x        = %g\n", axes->grid_scl_x   );
 	printf("grid_stress       = %g\n", axes->grid_stress_x);
-	for (size_t i = 0; i < GRID_ORDERS; i++)
-	{
+	for (size_t i = 0; i < GRID_ORDERS; i++) {
 		printf("grid_scale    [%zd] = %g\n", i, axes->grid_scale[i]);
 		printf("grid_intensity[%zd] = %g\n", i, axes->grid_intensity[i]);
 	}
 #endif
 
-	for (size_t i = 1; i < GRID_ORDERS; i++)
-	{
+	for (size_t i = 1; i < GRID_ORDERS; i++) {
 		axes->grid_scale    [i] = axes->grid_scale    [i-1] / axes->grid_base_x;
 		axes->grid_intensity[i] = axes->grid_intensity[i-1]  + intensity_step;
 	}

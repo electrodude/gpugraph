@@ -154,9 +154,9 @@ nk_glfw3_render(struct nk_glfw *glfw, enum nk_anti_aliasing AA, int max_vertex_b
 
         /* iterate over and execute each draw command */
         offset = (const nk_draw_index*)nk_buffer_memory_const(&ebuf);
-        nk_draw_foreach(cmd, &glfw->ctx, &dev->cmds)
-        {
-            if (!cmd->elem_count) continue;
+        nk_draw_foreach(cmd, &glfw->ctx, &dev->cmds) {
+            if (!cmd->elem_count)
+                continue;
             glBindTexture(GL_TEXTURE_2D, (GLuint)cmd->texture.id);
             glScissor(
                 (GLint)(cmd->clip_rect.x * glfw->fb_scale.x),
@@ -194,10 +194,9 @@ NK_API void
 nk_glfw3_key_callback(GLFWwindow *win, int key, int scancode, int action, int mods)
 {
     struct nk_glfw *glfw = glfwGetWindowUserPointer(win);
-    if (glfw->glfw_key_callback != NULL)
-    {
+    if (glfw->glfw_key_callback)
         glfw->glfw_key_callback(glfw, key, scancode, action, mods);
-    }
+
     struct nk_context *ctx = &glfw->ctx;
 
     int down = action == GLFW_PRESS || action == GLFW_REPEAT;
@@ -244,9 +243,9 @@ NK_API void
 nk_glfw3_char_callback(GLFWwindow *win, unsigned int codepoint)
 {
     struct nk_glfw *glfw = glfwGetWindowUserPointer(win);
-    if (glfw->glfw_char_callback != NULL) {
+    if (glfw->glfw_char_callback)
         glfw->glfw_char_callback(glfw, codepoint);
-    }
+
     if (codepoint < 0x10FFFF) {
         nk_input_unicode(&glfw->ctx, codepoint);
     }
@@ -256,9 +255,9 @@ NK_API void
 nk_glfw3_mousebutton_callback(GLFWwindow *win, int button, int action, int mods)
 {
     struct nk_glfw *glfw = glfwGetWindowUserPointer(win);
-    if (glfw->glfw_mousebutton_callback != NULL) {
+    if (glfw->glfw_mousebutton_callback)
         glfw->glfw_mousebutton_callback(glfw, button, action, mods);
-    }
+
     enum nk_buttons id;
     switch (button) {
         case GLFW_MOUSE_BUTTON_LEFT  : id = NK_BUTTON_LEFT  ; break;
@@ -275,9 +274,9 @@ NK_API void
 nk_glfw3_cursorpos_callback(GLFWwindow *win, double x, double y)
 {
     struct nk_glfw *glfw = glfwGetWindowUserPointer(win);
-    if (glfw->glfw_cursorpos_callback != NULL) {
+    if (glfw->glfw_cursorpos_callback)
         glfw->glfw_cursorpos_callback(glfw, x, y);
-    }
+
     nk_input_motion(&glfw->ctx, (int)x, (int)y);
 
     struct nk_context *ctx = &glfw->ctx;
@@ -301,10 +300,9 @@ NK_API void
 nk_glfw3_scroll_callback(GLFWwindow *win, double xoff, double yoff)
 {
     struct nk_glfw *glfw = glfwGetWindowUserPointer(win);
-    if (glfw->glfw_scroll_callback != NULL && !nk_item_is_any_active(&glfw->ctx)) {
+    if (glfw->glfw_scroll_callback && !nk_item_is_any_active(&glfw->ctx)) {
         glfw->glfw_scroll_callback(glfw, xoff, yoff);
-    }
-    else {
+    } else {
         (void)xoff;
         nk_input_scroll(&glfw->ctx, (float)yoff);
     }
@@ -315,7 +313,8 @@ nk_glfw3_clipboard_paste(nk_handle usr, struct nk_text_edit *edit)
 {
     struct nk_glfw *glfw = usr.ptr;
     const char *text = glfwGetClipboardString(glfw->win);
-    if (text) nk_textedit_paste(edit, text, nk_strlen(text));
+    if (text)
+        nk_textedit_paste(edit, text, nk_strlen(text));
 }
 
 NK_INTERN void
@@ -323,9 +322,11 @@ nk_glfw3_clipboard_copy(nk_handle usr, const char *text, int len)
 {
     struct nk_glfw *glfw = usr.ptr;
     char *str = 0;
-    if (!len) return;
+    if (!len)
+        return;
     str = (char*)malloc((size_t)len+1);
-    if (!str) return;
+    if (!str)
+        return;
     NK_MEMCPY(str, text, (size_t)len);
     str[len] = '\0';
     glfwSetClipboardString(glfw->win, str);
@@ -337,8 +338,7 @@ nk_glfw3_new(struct nk_glfw *glfw, const char *title)
 {
     GLFWwindow *win = glfwCreateWindow(glfw->width, glfw->height, title, NULL, NULL);
 
-    if (win == NULL)
-    {
+    if (!win) {
         fprintf(stderr, "glfwCreateWindow failed\n");
         return NULL;
     }

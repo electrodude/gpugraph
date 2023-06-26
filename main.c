@@ -25,7 +25,8 @@ static void key_callback(struct nk_glfw *nk_win, int key, int scancode, int acti
 static void char_callback(struct nk_glfw *nk_win, unsigned int codepoint) {}
 static void mousebutton_callback(struct nk_glfw *nk_win, int button, int action, int mods)
 {
-	if (action != GLFW_RELEASE && nk_item_is_any_active(&nk_win->ctx)) return;
+	if (action != GLFW_RELEASE && nk_item_is_any_active(&nk_win->ctx))
+		return;
 	struct graphics_window *win = nk_win->userdata.ptr;
 	//printf("mouse button: %d, %d\n", button, action);
 	buttons[button] = action;
@@ -34,8 +35,7 @@ static void mousebutton_callback(struct nk_glfw *nk_win, int button, int action,
 static void cursorpos_callback(struct nk_glfw *nk_win, double x, double y)
 {
 	struct graphics_window *win = nk_win->userdata.ptr;
-	if (buttons[GLFW_MOUSE_BUTTON_LEFT])
-	{
+	if (buttons[GLFW_MOUSE_BUTTON_LEFT]) {
 		//printf("(%g, %g), %g\n", win->axes.xmid, win->axes.ymid, win->axes.dp);
 		win->axes.xmid -= (x - mx) * win->axes.dp;
 		win->axes.ymid += (y - my) * win->axes.dp;
@@ -46,7 +46,8 @@ static void cursorpos_callback(struct nk_glfw *nk_win, double x, double y)
 }
 static void scroll_callback(struct nk_glfw *nk_win, double xoff, double yoff)
 {
-	if (nk_item_is_any_active(&nk_win->ctx)) return;
+	if (nk_item_is_any_active(&nk_win->ctx))
+		return;
 	struct graphics_window *win = nk_win->userdata.ptr;
 	//printf("(%g, %g), %g\n", win->axes.xmid, win->axes.ymid, win->axes.dp);
 	graphics_axes_zoom(&win->axes, mx * win->axes.dp + win->axes.xmin, win->axes.ymax - my * win->axes.dp, exp(-yoff*0.03));
@@ -64,10 +65,8 @@ static void windowsize_callback(GLFWwindow *glfw_win, int width, int height)
 struct graphics_window *graph_window_new(void)
 {
 	struct graphics_window *win = malloc(sizeof(*win));
-	*win = (struct graphics_window)
-	{
-		.nk =
-		{
+	*win = (struct graphics_window){
+		.nk = {
 			.width = 800, .height = 600,
 			.glfw_key_callback = key_callback,
 			.glfw_char_callback = char_callback,
@@ -90,8 +89,7 @@ struct graphics_window *graph_window_new(void)
 
 	glfwSetWindowSizeCallback(win->nk.win, windowsize_callback);
 
-	win->axes = (struct graphics_axes)
-	{
+	win->axes = (struct graphics_axes){
 		.xmid = 0.0, .ymid = 0.0,
 		.dp = 2.0 / win->nk.display_width,
 		.grid_base_x = 10.0, .grid_base_y = 10.0,
@@ -109,8 +107,7 @@ struct aem_stringbuf graphics_axes_shader_path = {0};
 int main(int argc, char **argv)
 {
 	FILE *oom_score_adj = fopen("/proc/self/oom_score_adj", "w+");
-	if (oom_score_adj != NULL)
-	{
+	if (oom_score_adj) {
 		// Kill me first.
 		// (Is this necessary?  Does this still actually use tons of ram, or was it just a bug?)
 		fprintf(oom_score_adj, "1000\n");
@@ -129,39 +126,36 @@ int main(int argc, char **argv)
 
 	graphics_init();
 
-	if (argc > 1)
-	{
+	if (argc > 1) {
 		const char *f = argv[1];
 
 		if (session_load_path(f))
-		{
 			graph_window_new();
-		}
-	}
-	else
-	{
+	} else {
 		graph_window_new();
 	}
 
-	while (graphics_window_list.next != &graphics_window_list)
-	{
+	while (graphics_window_list.next != &graphics_window_list) {
 		int animating = animate_next;
-		if (animate_next) animate_next--;
+		if (animate_next)
+			animate_next--;
 
 		static float time_old = 0.0;
 		float time_new = glfwGetTime();
 		float dt = time_new - time_old;
 		time_old = time_new;
 
-		if (graphics_graph_parameter_update_all(dt))
-		{
+		if (graphics_graph_parameter_update_all(dt)) {
+			//printf("animating\n");
 			animating = 1;
 		}
 
-		AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next)
-		{
-			if (glfwWindowShouldClose(win->nk.win))
-			{
+		AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next) {
+			if (graphics_window_draw(win)) {
+				//animating = 1;
+			}
+
+			if (glfwWindowShouldClose(win->nk.win)) {
 				AEM_LL_REMOVE(win, prev, next);
 				graphics_axes_dtor(&win->axes);
 				graphics_window_dtor(win);
@@ -170,12 +164,10 @@ int main(int argc, char **argv)
 			}
 		}
 
-		AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next)
-		{
+		AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next) {
 			graphics_window_render(win);
 
-			if (glfwWindowShouldClose(win->nk.win))
-			{
+			if (glfwWindowShouldClose(win->nk.win)) {
 				AEM_LL_REMOVE(win, prev, next);
 				graphics_axes_dtor(&win->axes);
 				graphics_window_dtor(win);
@@ -184,37 +176,30 @@ int main(int argc, char **argv)
 			}
 		}
 
-		AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next)
-		{
+		AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next) {
 			graphics_window_select(win);
 			nk_input_begin(&win->nk.ctx);
 		}
 
-		if (animating)
-		{
+		if (animating) {
 			glfwPollEvents();
-		}
-		else
-		{
+		} else {
 			glfwWaitEvents();
 			glfwWaitEvents(); // TODO: fix this
 		}
 		graphics_check_gl_error("events");
-		AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next)
-		{
+		AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next) {
 			graphics_window_select(win);
 			nk_input_end(&win->nk.ctx);
 		}
 	}
 
-	if (graphics_window_list.next != &graphics_window_list)
-	{
+	if (graphics_window_list.next != &graphics_window_list) {
 		// only autosave on quit if any windows are left
 		session_save_path("session_quit.txt");
 	}
 
-	AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next)
-	{
+	AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next) {
 		graphics_window_dtor(win);
 	}
 

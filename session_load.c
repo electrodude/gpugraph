@@ -28,22 +28,15 @@
 
 void session_load_consume_whitespace(struct aem_stringslice *p)
 {
-	while (aem_stringslice_ok(p))
-	{
-		if (isspace(*p->start))
-		{
+	while (aem_stringslice_ok(p)) {
+		if (isspace(*p->start)) {
 			p->start++;
-		}
-		else if (aem_stringslice_match(p, "//"))
-		{
+		} else if (aem_stringslice_match(p, "//")) {
 			aem_stringslice_match_line(p);
-		}
-		else if (aem_stringslice_match(p, "/*"))
-		{
-			while (aem_stringslice_ok(p) && !aem_stringslice_match(p, "*/")) p->start++;
-		}
-		else
-		{
+		} else if (aem_stringslice_match(p, "/*")) {
+			while (aem_stringslice_ok(p) && !aem_stringslice_match(p, "*/"))
+				p->start++;
+		} else {
 			break;
 		}
 	}
@@ -78,30 +71,23 @@ int session_load_parse_color(struct aem_stringslice *p, float (*color)[4])
 	dprintf("parsing color\n");
 
 	session_load_consume_whitespace(p);
-	if (aem_stringslice_match(p, "#"))
-	{
-		for (size_t i = 0; i < 4; i++)
-		{
+	if (aem_stringslice_match(p, "#")) {
+		for (size_t i = 0; i < 4; i++) {
 			session_load_consume_whitespace(p);
 			int c = aem_stringslice_match_hexbyte(p);
-			if (c == -1)
-			{
+			if (c == -1) {
 				dprintf("failed parsing color: expected hex number\n");
 				return 1;
 			}
 			(*color)[i] = c / 255.0;
 			dprintf("color[%zd] = %d\n", i, c);
 		}
-	}
-	else
-	{
-		for (size_t i = 0; i < 4; i++)
-		{
+	} else {
+		for (size_t i = 0; i < 4; i++) {
 			session_load_consume_whitespace(p);
 			char *pe;
 			(*color)[i] = strtof(p->start, &pe);
-			if (p->start == pe)
-			{
+			if (p->start == pe) {
 				fprintf(stderr, "failed parsing color: expected float\n");
 				return 1;
 			}
@@ -122,8 +108,7 @@ int session_load_parse_param(struct aem_stringslice *p)
 	session_load_consume_whitespace(p);
 	char *pe;
 	size_t count = strtol(p->start, &pe, 10);
-	if (p->start == pe)
-	{
+	if (p->start == pe) {
 		fprintf(stderr, "failed parsing param: expected integer\n");
 		return 1;
 	}
@@ -132,13 +117,11 @@ int session_load_parse_param(struct aem_stringslice *p)
 
 	struct graphics_graph_parameter *param = graphics_graph_parameter_new(count);
 
-	for (size_t i = 0; i < count; i++)
-	{
+	for (size_t i = 0; i < count; i++) {
 		session_load_consume_whitespace(p);
 		char *pe;
 		param->values[i] = strtof(p->start, &pe);
-		if (p->start == pe)
-		{
+		if (p->start == pe) {
 			fprintf(stderr, "failed parsing param: expected float\n");
 			return 1;
 		}
@@ -186,8 +169,7 @@ int session_load_parse_view(struct aem_stringslice *p, struct graphics_graph *gr
 #endif
 
 	struct graphics_graph_parameter *param = graphics_graph_parameter_lookup(param_name);
-	if (param == NULL)
-	{
+	if (!param) {
 		fprintf(stderr, "failed parsing view: no such param: \"");
 		aem_stringslice_file_write(&param_name, stderr);
 		fprintf(stderr, "\"\n");
@@ -223,19 +205,16 @@ int session_load_parse_shader(struct aem_stringslice *p, struct graphics_graph *
 	shader.start = p->start;
 
 	size_t depth = 0;
-	while (aem_stringslice_ok(p))
-	{
+	while (aem_stringslice_ok(p)) {
 		session_load_consume_whitespace(p);
 
 		char c = *p->start;
 
-		if (c == '{')
-		{
+		if (c == '{') {
 			depth++;
-		}
-		else if (c == '}')
-		{
-			if (depth == 0) break;
+		} else if (c == '}') {
+			if (depth == 0)
+				break;
 			depth--;
 		}
 		// TODO: does GLSL have string literals or anything that can contain curly brackets?
@@ -244,13 +223,13 @@ int session_load_parse_shader(struct aem_stringslice *p, struct graphics_graph *
 	}
 
 	shader.end = p->start;
-	while (aem_stringslice_ok(&shader) && isspace(shader.end[-1])) shader.end--;
+	while (aem_stringslice_ok(&shader) && isspace(shader.end[-1]))
+		shader.end--;
 
 	aem_stringbuf_reset(&graph->eqn);
 
 	// unindent shader code
-	while (aem_stringslice_ok(&shader))
-	{
+	while (aem_stringslice_ok(&shader)) {
 		struct aem_stringslice line = aem_stringslice_match_line(&shader);
 		aem_stringslice_match(&shader, "\r");
 		aem_stringslice_match(&shader, "\n");
@@ -281,8 +260,7 @@ int session_load_parse_window_view(struct aem_stringslice *p, struct graphics_wi
 	{
 		char *pe;
 		win->axes.xmid = strtod(p->start, &pe);
-		if (p->start == pe)
-		{
+		if (p->start == pe) {
 			fprintf(stderr, "failed parsing window view: expected double\n");
 			return 1;
 		}
@@ -295,8 +273,7 @@ int session_load_parse_window_view(struct aem_stringslice *p, struct graphics_wi
 	{
 		char *pe;
 		win->axes.ymid = strtod(p->start, &pe);
-		if (p->start == pe)
-		{
+		if (p->start == pe) {
 			fprintf(stderr, "failed parsing window view: expected double\n");
 			return 1;
 		}
@@ -309,8 +286,7 @@ int session_load_parse_window_view(struct aem_stringslice *p, struct graphics_wi
 	{
 		char *pe;
 		win->axes.dp = strtod(p->start, &pe);
-		if (p->start == pe)
-		{
+		if (p->start == pe) {
 			fprintf(stderr, "failed parsing window view: expected double\n");
 			return 1;
 		}
@@ -357,46 +333,36 @@ int session_load_parse_graph(struct aem_stringslice *p, struct graphics_window *
 	aem_stringbuf_reset(&graph->name);
 	aem_stringbuf_append_stringslice(&graph->name, name);
 
-	while (aem_stringslice_ok(p))
-	{
+	while (aem_stringslice_ok(p)) {
 		session_load_consume_whitespace(p);
 
-		if (aem_stringslice_match(p, "param"))
-		{
+		if (aem_stringslice_match(p, "param")) {
 			int rc = session_load_parse_view(p, graph);
-			if (rc) goto fail;
-		}
-		else if (aem_stringslice_match(p, "color"))
-		{
+			if (rc)
+				goto fail;
+		} else if (aem_stringslice_match(p, "color")) {
 			int rc = session_load_parse_color(p, &graph->color);
-			if (rc) goto fail;
-		}
-		else if (aem_stringslice_match(p, "hsv"))
-		{
+			if (rc)
+				goto fail;
+		} else if (aem_stringslice_match(p, "hsv")) {
 			int rc = session_load_parse_boolean(p, &graph->hsv);
-			if (rc) goto fail;
-		}
-		else if (aem_stringslice_match(p, "enable"))
-		{
+			if (rc)
+				goto fail;
+		} else if (aem_stringslice_match(p, "enable")) {
 			int rc = session_load_parse_boolean(p, &graph->enable);
-			if (rc) goto fail;
-		}
-		else if (aem_stringslice_match(p, "dock"))
-		{
+			if (rc)
+				goto fail;
+		} else if (aem_stringslice_match(p, "dock")) {
 			int rc = session_load_parse_boolean(p, &graph->dock);
-			if (rc) goto fail;
-		}
-		else if (aem_stringslice_match(p, "shader"))
-		{
+			if (rc)
+				goto fail;
+		} else if (aem_stringslice_match(p, "shader")) {
 			int rc = session_load_parse_shader(p, graph);
-			if (rc) goto fail;
-		}
-		else if (aem_stringslice_match(p, "}"))
-		{
+			if (rc)
+				goto fail;
+		} else if (aem_stringslice_match(p, "}")) {
 			break;
-		}
-		else
-		{
+		} else {
 			fprintf(stderr, "failed parsing graph\n");
 			goto fail;
 		}
@@ -436,50 +402,39 @@ int session_load_parse_window(struct aem_stringslice *p)
 	aem_stringbuf_reset(&win->title);
 	aem_stringbuf_append_stringslice(&win->title, title);
 
-	while (aem_stringslice_ok(p))
-	{
+	while (aem_stringslice_ok(p)) {
 		session_load_consume_whitespace(p);
-		if (aem_stringslice_match(p, "graph"))
-		{
+		if (aem_stringslice_match(p, "graph")) {
 			int rc = session_load_parse_graph(p, win);
-			if (rc) return rc;
-		}
-		else if (aem_stringslice_match(p, "view"))
-		{
+			if (rc)
+				return rc;
+		} else if (aem_stringslice_match(p, "view")) {
 			int rc = session_load_parse_window_view(p, win);
-			if (rc) return rc;
-		}
-		else if (aem_stringslice_match(p, "color"))
-		{
+			if (rc)
+				return rc;
+		} else if (aem_stringslice_match(p, "color")) {
 			float color[4];
 			int rc = session_load_parse_color(p, &color);
-			if (rc) return rc;
+			if (rc)
+				return rc;
 			win->background = nk_hsva_fv(color);
-		}
-		else if (aem_stringslice_match(p, "hsv"))
-		{
+		} else if (aem_stringslice_match(p, "hsv")) {
 			int rc = session_load_parse_boolean(p, &win->hsv);
-			if (rc) return rc;
-		}
-		else if (aem_stringslice_match(p, "grid"))
-		{
+			if (rc)
+				return rc;
+		} else if (aem_stringslice_match(p, "grid")) {
 			int rc = session_load_parse_boolean(p, &win->grid_en);
-			if (rc) return rc;
-		}
-		else if (aem_stringslice_match(p, "pfx"))
-		{
+			if (rc)
+				return rc;
+		} else if (aem_stringslice_match(p, "pfx")) {
 			// TODO: error checking
 			session_load_consume_whitespace(p);
 			struct aem_stringslice eqn_pfx = aem_stringslice_match_line(p);
 			aem_stringbuf_append_stringslice(&win->eqn_pfx, eqn_pfx);
 			aem_stringbuf_putc(&win->eqn_pfx, '\n');
-		}
-		else if (aem_stringslice_match(p, "}"))
-		{
+		} else if (aem_stringslice_match(p, "}")) {
 			break;
-		}
-		else
-		{
+		} else {
 			fprintf(stderr, "failed parsing window\n");
 			return 1;
 		}
@@ -496,21 +451,17 @@ int session_load_parse_window(struct aem_stringslice *p)
 int session_load_parse(struct aem_stringslice *p)
 {
 	dprintf("parsing file\n");
-	while (aem_stringslice_ok(p))
-	{
+	while (aem_stringslice_ok(p)) {
 		session_load_consume_whitespace(p);
-		if (aem_stringslice_match(p, "param"))
-		{
+		if (aem_stringslice_match(p, "param")) {
 			int rc = session_load_parse_param(p);
-			if (rc) goto fail;
-		}
-		else if (aem_stringslice_match(p, "window"))
-		{
+			if (rc)
+				goto fail;
+		} else if (aem_stringslice_match(p, "window")) {
 			int rc = session_load_parse_window(p);
-			if (rc) goto fail;
-		}
-		else if (aem_stringslice_ok(p))
-		{
+			if (rc)
+				goto fail;
+		} else if (aem_stringslice_ok(p)) {
 			fprintf(stderr, "failed parsing\n");
 			goto fail;
 		}
@@ -550,8 +501,7 @@ int session_load_path(const char *path)
 	aem_stringbuf_puts(&session_path, path);
 
 	FILE *fp = fopen(path, "r");
-	if (fp == NULL)
-	{
+	if (!fp) {
 		fprintf(stderr, "failed to load %s\n", path);
 		return 1;
 	}
@@ -564,7 +514,8 @@ int session_load_path(const char *path)
 
 int session_load_curr(void)
 {
-	if (session_path.n == 0) return 1;
+	if (session_path.n == 0)
+		return 1;
 
 	return session_load_path(aem_stringbuf_get(&session_path));
 }

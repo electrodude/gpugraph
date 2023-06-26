@@ -16,8 +16,7 @@ void graphics_shader_program_new(struct graphics_shader_program *program)
 
 int graphics_shader_program_link(struct graphics_shader_program *program)
 {
-	if (program->status != GRAPHICS_SHADER_PROGRAM_CONSTRUCTING)
-	{
+	if (program->status != GRAPHICS_SHADER_PROGRAM_CONSTRUCTING) {
 		fprintf(stderr, "graphics_shader_add: shader program not under construction\n");
 		return -1;
 	}
@@ -30,8 +29,7 @@ int graphics_shader_program_link(struct graphics_shader_program *program)
 
 	int program_ok;
 	glGetProgramiv(program->program, GL_LINK_STATUS, &program_ok);
-	if (!program_ok)
-	{
+	if (!program_ok) {
 		fprintf(stderr, "graphics_shader_program_link: link failed:\n");
 
 		GLint log_length;
@@ -55,13 +53,13 @@ int graphics_shader_program_link(struct graphics_shader_program *program)
 int graphics_shader_program_dtor(struct graphics_shader_program *program)
 {
 	/* Not necessary, done automatically by glDeleteProgram below
-	AEM_LL_FOR_ALL(shader, &program->shaders, prev, next)
-	{
+	AEM_LL_FOR_ALL(shader, &program->shaders, prev, next) {
 		glDetachShader(program->program, shader->id);
 	}
 	*/
 
-	if (program->status == GRAPHICS_SHADER_PROGRAM_FAIL) return 1;
+	if (program->status == GRAPHICS_SHADER_PROGRAM_FAIL)
+		return 1;
 
 	glDeleteProgram(program->program);
 	program->program = 0;
@@ -72,8 +70,7 @@ int graphics_shader_program_dtor(struct graphics_shader_program *program)
 
 int graphics_shader_add(struct graphics_shader_program *program, GLenum type, struct aem_stringslice source)
 {
-	if (program->status != GRAPHICS_SHADER_PROGRAM_CONSTRUCTING)
-	{
+	if (program->status != GRAPHICS_SHADER_PROGRAM_CONSTRUCTING) {
 		fprintf(stderr, "graphics_shader_add: shader program not under construction\n");
 		return -1;
 	}
@@ -89,8 +86,7 @@ int graphics_shader_add(struct graphics_shader_program *program, GLenum type, st
 
 	int shader_ok;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &shader_ok);
-	if (!shader_ok)
-	{
+	if (!shader_ok) {
 		fprintf(stderr, "graphics_shader_add: compilation failed:\n");
 
 		GLint log_length;
@@ -124,8 +120,7 @@ int graphics_shader_add(struct graphics_shader_program *program, GLenum type, st
 int graphics_shader_add_file(struct graphics_shader_program *program, GLenum type, const char *path)
 {
 	FILE *fp = fopen(path, "r");
-	if (fp == NULL)
-	{
+	if (!fp) {
 		fprintf(stderr, "graphics_shader_add_file: file not found: %s\n", path);
 		return -1;
 	}
