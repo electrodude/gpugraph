@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "aem/stringbuf.h"
+#include <aem/stringbuf.h>
 
 #include "graphics.h"
 
@@ -17,7 +17,7 @@ void graphics_shader_program_new(struct graphics_shader_program *program)
 int graphics_shader_program_link(struct graphics_shader_program *program)
 {
 	if (program->status != GRAPHICS_SHADER_PROGRAM_CONSTRUCTING) {
-		fprintf(stderr, "graphics_shader_add: shader program not under construction\n");
+		aem_logf_ctx(AEM_LOG_ERROR, "shader program not under construction");
 		return -1;
 	}
 
@@ -30,14 +30,15 @@ int graphics_shader_program_link(struct graphics_shader_program *program)
 	int program_ok;
 	glGetProgramiv(program->program, GL_LINK_STATUS, &program_ok);
 	if (!program_ok) {
-		fprintf(stderr, "graphics_shader_program_link: link failed:\n");
 
-		GLint log_length;
+		GLsizei log_length;
 		glGetProgramiv(program->program, GL_INFO_LOG_LENGTH, &log_length);
-		char *log = malloc(log_length);
-		glGetProgramInfoLog(program->program, log_length, NULL, log);
-		fprintf(stderr, "%d %s", log_length, log);
-		free(log);
+		AEM_LOG_MULTI(out, AEM_LOG_ERROR) {
+			aem_stringbuf_puts(out, "link failed:\n");
+			aem_stringbuf_reserve(out, log_length);
+			glGetProgramInfoLog(program->program, log_length, &log_length, aem_stringbuf_end(out));
+			out->n += log_length;
+		}
 
 		glDeleteProgram(program->program);
 		program->program = 0;
@@ -53,7 +54,7 @@ int graphics_shader_program_link(struct graphics_shader_program *program)
 int graphics_shader_program_dtor(struct graphics_shader_program *program)
 {
 	/* Not necessary, done automatically by glDeleteProgram below
-	AEM_LL_FOR_ALL(shader, &program->shaders, prev, next) {
+	AEM_LL_FOR_ALL(shader, &program->shaders, next) {
 		glDetachShader(program->program, shader->id);
 	}
 	*/
@@ -71,12 +72,12 @@ int graphics_shader_program_dtor(struct graphics_shader_program *program)
 int graphics_shader_add(struct graphics_shader_program *program, GLenum type, struct aem_stringslice source)
 {
 	if (program->status != GRAPHICS_SHADER_PROGRAM_CONSTRUCTING) {
-		fprintf(stderr, "graphics_shader_add: shader program not under construction\n");
+		aem_logf_ctx(AEM_LOG_ERROR, "shader program not under construction");
 		return -1;
 	}
 
 	const char *p = source.start;
-	GLint length = aem_stringslice_len(&source);
+	GLint length = aem_stringslice_len(source);
 
 	graphics_check_gl_error("pre compile");
 
@@ -87,14 +88,15 @@ int graphics_shader_add(struct graphics_shader_program *program, GLenum type, st
 	int shader_ok;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &shader_ok);
 	if (!shader_ok) {
-		fprintf(stderr, "graphics_shader_add: compilation failed:\n");
 
-		GLint log_length;
+		GLsizei log_length;
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &log_length);
-		char *log = malloc(log_length);
-		glGetShaderInfoLog(shader, log_length, NULL, log);
-		fprintf(stderr, "%s", log);
-		free(log);
+		AEM_LOG_MULTI(out, AEM_LOG_ERROR) {
+			aem_stringbuf_puts(out, "compilation failed:\n");
+			aem_stringbuf_reserve(out, log_length);
+			glGetShaderInfoLog(shader, log_length, &log_length, aem_stringbuf_end(out));
+			out->n += log_length;
+		}
 
 		glDeleteShader(shader);
 		program->status = GRAPHICS_SHADER_PROGRAM_FAIL;
@@ -121,12 +123,12 @@ int graphics_shader_add_file(struct graphics_shader_program *program, GLenum typ
 {
 	FILE *fp = fopen(path, "r");
 	if (!fp) {
-		fprintf(stderr, "graphics_shader_add_file: file not found: %s\n", path);
+		aem_logf_ctx(AEM_LOG_ERROR, "file not found: %s", path);
 		return -1;
 	}
 
 	struct aem_stringbuf source = AEM_STRINGBUF_EMPTY;
-	aem_stringbuf_file_read(&source, fp);
+	aem_stringbuf_file_read_all(&source, fp);
 	fclose(fp);
 
 	int shader = graphics_shader_add(program, type, aem_stringslice_new_str(&source));

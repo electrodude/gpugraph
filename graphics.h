@@ -23,8 +23,8 @@ struct graphics_window
 
 	struct graphics_graph graph_list;
 
-	struct graphics_window *prev;
-	struct graphics_window *next;
+	struct graphics_window *win_prev;
+	struct graphics_window *win_next;
 	int id;
 
 	struct aem_stringbuf eqn_pfx;

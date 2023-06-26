@@ -25,8 +25,8 @@ static inline void graphics_check_gl_error(const char *msg)
 	for (GLenum glerr = glGetError(); glerr; glerr = glGetError())
 	{
 		// We're just ignoring all GL errors.  Isn't it lovely?
-		//fprintf(stderr, "%s: 0x%04x\n", msg, glerr);
-		//abort();
+		//aem_logf_ctx(AEM_LOG_ERROR, "%s: 0x%04x", msg, glerr);
+		//aem_abort();
 	}
 }
 

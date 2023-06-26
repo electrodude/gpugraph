@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "aem/linked_list.h"
+#include <aem/linked_list.h>
 
 #include "graphics.h"
 
@@ -28,7 +28,7 @@ static void mousebutton_callback(struct nk_glfw *nk_win, int button, int action,
 	if (action != GLFW_RELEASE && nk_item_is_any_active(&nk_win->ctx))
 		return;
 	struct graphics_window *win = nk_win->userdata.ptr;
-	//printf("mouse button: %d, %d\n", button, action);
+	//aem_logf_ctx(AEM_LOG_DEBUG2, "mouse button: %d, %d", button, action);
 	buttons[button] = action;
 	animate_next = 1;
 }
@@ -36,7 +36,7 @@ static void cursorpos_callback(struct nk_glfw *nk_win, double x, double y)
 {
 	struct graphics_window *win = nk_win->userdata.ptr;
 	if (buttons[GLFW_MOUSE_BUTTON_LEFT]) {
-		//printf("(%g, %g), %g\n", win->axes.xmid, win->axes.ymid, win->axes.dp);
+		//aem_logf_ctx(AEM_LOG_DEBUG2, "(%g, %g), %g", win->axes.xmid, win->axes.ymid, win->axes.dp);
 		win->axes.xmid -= (x - mx) * win->axes.dp;
 		win->axes.ymid += (y - my) * win->axes.dp;
 		graphics_axes_recalculate(&win->axes);
@@ -49,7 +49,7 @@ static void scroll_callback(struct nk_glfw *nk_win, double xoff, double yoff)
 	if (nk_item_is_any_active(&nk_win->ctx))
 		return;
 	struct graphics_window *win = nk_win->userdata.ptr;
-	//printf("(%g, %g), %g\n", win->axes.xmid, win->axes.ymid, win->axes.dp);
+	//aem_logf_ctx(AEM_LOG_DEBUG2, "(%g, %g), %g", win->axes.xmid, win->axes.ymid, win->axes.dp);
 	graphics_axes_zoom(&win->axes, mx * win->axes.dp + win->axes.xmin, win->axes.ymax - my * win->axes.dp, exp(-yoff*0.03));
 	animate_next = 1;
 }
@@ -106,6 +106,8 @@ struct aem_stringbuf graphics_axes_shader_path = {0};
 
 int main(int argc, char **argv)
 {
+	aem_log_stderr();
+
 	FILE *oom_score_adj = fopen("/proc/self/oom_score_adj", "w+");
 	if (oom_score_adj) {
 		// Kill me first.
@@ -113,12 +115,12 @@ int main(int argc, char **argv)
 		fprintf(oom_score_adj, "1000\n");
 		fclose(oom_score_adj);
 #if 0
-		fprintf(stderr, "set own oom_score_adj to 1000\n");
+		aem_logf_ctx(AEM_LOG_DEBUG, "set own oom_score_adj to 1000");
 #endif
 	}
 
 	// should go somewhere else
-	AEM_LL_INIT(&graphics_graph_parameters, prev, next);
+	AEM_LL2_INIT(&graphics_graph_parameters, param);
 	graphics_graph_parameters.id = -1;
 
 	aem_stringbuf_reset(&graphics_axes_shader_path);
@@ -135,7 +137,7 @@ int main(int argc, char **argv)
 		graph_window_new();
 	}
 
-	while (graphics_window_list.next != &graphics_window_list) {
+	while (!AEM_LL2_EMPTY(&graphics_window_list, win)) {
 		int animating = animate_next;
 		if (animate_next)
 			animate_next--;
@@ -146,17 +148,17 @@ int main(int argc, char **argv)
 		time_old = time_new;
 
 		if (graphics_graph_parameter_update_all(dt)) {
-			//printf("animating\n");
+			//aem_logf_ctx(AEM_LOG_DEBUG2, "animating");
 			animating = 1;
 		}
 
-		AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next) {
+		AEM_LL2_FOR_ALL(win, &graphics_window_list, win) {
 			if (graphics_window_draw(win)) {
 				//animating = 1;
 			}
 
 			if (glfwWindowShouldClose(win->nk.win)) {
-				AEM_LL_REMOVE(win, prev, next);
+				AEM_LL2_REMOVE(win, win);
 				graphics_axes_dtor(&win->axes);
 				graphics_window_dtor(win);
 
@@ -164,11 +166,11 @@ int main(int argc, char **argv)
 			}
 		}
 
-		AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next) {
+		AEM_LL2_FOR_ALL(win, &graphics_window_list, win) {
 			graphics_window_render(win);
 
 			if (glfwWindowShouldClose(win->nk.win)) {
-				AEM_LL_REMOVE(win, prev, next);
+				AEM_LL2_REMOVE(win, win);
 				graphics_axes_dtor(&win->axes);
 				graphics_window_dtor(win);
 
@@ -176,7 +178,7 @@ int main(int argc, char **argv)
 			}
 		}
 
-		AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next) {
+		AEM_LL2_FOR_ALL(win, &graphics_window_list, win) {
 			graphics_window_select(win);
 			nk_input_begin(&win->nk.ctx);
 		}
@@ -188,18 +190,18 @@ int main(int argc, char **argv)
 			glfwWaitEvents(); // TODO: fix this
 		}
 		graphics_check_gl_error("events");
-		AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next) {
+		AEM_LL2_FOR_ALL(win, &graphics_window_list, win) {
 			graphics_window_select(win);
 			nk_input_end(&win->nk.ctx);
 		}
 	}
 
-	if (graphics_window_list.next != &graphics_window_list) {
+	if (!AEM_LL2_EMPTY(&graphics_window_list, win)) {
 		// only autosave on quit if any windows are left
 		session_save_path("session_quit.txt");
 	}
 
-	AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next) {
+	AEM_LL2_FOR_ALL(win, &graphics_window_list, win) {
 		graphics_window_dtor(win);
 	}
 

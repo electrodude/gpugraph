@@ -1,7 +1,7 @@
 #ifndef AXES_H
 #define AXES_H
 
-#include "aem/stringbuf.h"
+#include <aem/stringbuf.h>
 
 #include "shader.h"
 

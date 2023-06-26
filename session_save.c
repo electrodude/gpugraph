@@ -1,4 +1,4 @@
-#include "aem/linked_list.h"
+#include <aem/linked_list.h>
 
 #include "graphics.h"
 #include "controls.h"
@@ -7,7 +7,7 @@
 
 void session_save_serialize(struct aem_stringbuf *str)
 {
-	AEM_LL_FOR_ALL(param, &graphics_graph_parameters, prev, next) {
+	AEM_LL2_FOR_ALL(param, &graphics_graph_parameters, param) {
 		aem_stringbuf_puts(str, "param ");
 		aem_stringbuf_putnum(str, 10, param->count);
 
@@ -22,7 +22,7 @@ void session_save_serialize(struct aem_stringbuf *str)
 		aem_stringbuf_putc(str, '\n');
 	}
 
-	AEM_LL_FOR_ALL(win, &graphics_window_list, prev, next) {
+	AEM_LL2_FOR_ALL(win, &graphics_window_list, win) {
 		aem_stringbuf_puts(str, "\nwindow ");
 		aem_stringbuf_append(str, &win->title);
 		aem_stringbuf_puts(str, "\n{\n");
@@ -37,21 +37,21 @@ void session_save_serialize(struct aem_stringbuf *str)
 
 		if (win->eqn_pfx.n) {
 			struct aem_stringslice eqn_pfx = aem_stringslice_new_str(&win->eqn_pfx);
-			for (struct aem_stringslice pfx_line = aem_stringslice_match_line(&eqn_pfx); aem_stringslice_ok(&pfx_line); pfx_line = aem_stringslice_match_line(&eqn_pfx)) {
+			for (struct aem_stringslice pfx_line = aem_stringslice_match_line(&eqn_pfx); aem_stringslice_ok(pfx_line); pfx_line = aem_stringslice_match_line(&eqn_pfx)) {
 				aem_stringbuf_puts(str, "\n\tpfx ");
-				aem_stringbuf_append_stringslice(str, pfx_line);
+				aem_stringbuf_putss(str, pfx_line);
 			}
 			aem_stringbuf_putc(str, '\n');
 		}
 
-		AEM_LL_FOR_ALL(graph, &win->graph_list, prev, next) {
+		AEM_LL2_FOR_ALL(graph, &win->graph_list, graph) {
 			aem_stringbuf_puts(str, "\n\tgraph ");
 			aem_stringbuf_puts(str, "frag");
 			aem_stringbuf_putc(str, ' ');
 			aem_stringbuf_append(str, &graph->name);
 			aem_stringbuf_puts(str, "\n\t{\n");
 
-			AEM_LL_FOR_ALL(view, &graph->params, prev, next) {
+			AEM_LL2_FOR_ALL(view, &graph->params, param_view) {
 				aem_stringbuf_puts(str, "\t\tparam ");
 
 				aem_stringbuf_append(str, &view->name);
@@ -60,9 +60,8 @@ void session_save_serialize(struct aem_stringbuf *str)
 				aem_stringbuf_puts(str, "\n");
 			}
 
-			if (graph->params.next != &graph->params) { // if any params
+			if (AEM_LL2_EMPTY(&graph->params, param_view)) // if any params
 				aem_stringbuf_putc(str, '\n');
-			}
 
 			aem_stringbuf_puts(str, "\t\tcolor #");
 			aem_stringbuf_puthex(str, graph->color[0]*255.0); // TODO: clamp these
@@ -95,13 +94,13 @@ void session_save_serialize(struct aem_stringbuf *str)
 
 			// indent shader code
 			struct aem_stringslice eqn = aem_stringslice_new_str(&graph->eqn);
-			while (aem_stringslice_ok(&eqn)) {
+			while (aem_stringslice_ok(eqn)) {
 				struct aem_stringslice line = aem_stringslice_match_line(&eqn);
 				aem_stringslice_match(&eqn, "\r");
 				aem_stringslice_match(&eqn, "\n");
 
 				aem_stringbuf_puts(str, "\t\t\t");
-				aem_stringbuf_append_stringslice(str, line);
+				aem_stringbuf_putss(str, line);
 				aem_stringbuf_putc(str, '\n');
 			}
 
@@ -134,7 +133,7 @@ int session_save_path(const char *path)
 
 	FILE *fp = fopen(path, "w+");
 	if (!fp) {
-		fprintf(stderr, "failed to save %s\n", path);
+		aem_logf_ctx(AEM_LOG_ERROR, "failed to save %s", path);
 		return 1;
 	}
 

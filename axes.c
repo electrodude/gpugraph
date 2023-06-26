@@ -4,11 +4,9 @@
 
 #include "graph_nuklear.h"
 
-#include "aem/stringbuf.h"
+#include <aem/stringbuf.h>
 
 #include "axes.h"
-
-#define GRAPHICS_AXES_DEBUG 0
 
 void graphics_axes_new(struct graphics_axes *axes)
 {
@@ -27,14 +25,13 @@ void graphics_axes_new(struct graphics_axes *axes)
 	axes->uniform_scale = glGetUniformLocation(axes->grid_shader.program, "scale");
 	axes->uniform_grid_scale = glGetUniformLocation(axes->grid_shader.program, "grid_scale");
 	axes->uniform_grid_intensity = glGetUniformLocation(axes->grid_shader.program, "grid_intensity");
-#if GRAPHICS_AXES_DEBUG
-	printf("axes location(origin) = %d\n", axes->uniform_origin);
-	printf("axes location(scale) = %d\n", axes->uniform_scale);
-	printf("axes location(grid_scale) = %d\n", axes->uniform_grid_scale);
-	printf("axes location(grid_intensity) = %d\n", axes->uniform_grid_intensity);
-#endif
-	if (axes->grid_shader.status != GRAPHICS_SHADER_PROGRAM_LINKED)
-		abort();
+
+	aem_logf_ctx(AEM_LOG_DEBUG, "axes location(origin) = %d", axes->uniform_origin);
+	aem_logf_ctx(AEM_LOG_DEBUG, "axes location(scale) = %d", axes->uniform_scale);
+	aem_logf_ctx(AEM_LOG_DEBUG, "axes location(grid_scale) = %d", axes->uniform_grid_scale);
+	aem_logf_ctx(AEM_LOG_DEBUG, "axes location(grid_intensity) = %d", axes->uniform_grid_intensity);
+
+	aem_assert(axes->grid_shader.status == GRAPHICS_SHADER_PROGRAM_LINKED);
 }
 
 void graphics_axes_dtor(struct graphics_axes *axes)
@@ -63,11 +60,11 @@ void graphics_axes_recalculate(struct graphics_axes *axes)
 	float intensity_step = 1.0 / (GRID_ORDERS - 1);
 
 #if 0
-	printf("grid_scl_x        = %g\n", axes->grid_scl_x   );
-	printf("grid_stress       = %g\n", axes->grid_stress_x);
+	aem_logf_ctx(AEM_LOG_DEBUG2, "grid_scl_x        = %g", axes->grid_scl_x   );
+	aem_logf_ctx(AEM_LOG_DEBUG2, "grid_stress       = %g", axes->grid_stress_x);
 	for (size_t i = 0; i < GRID_ORDERS; i++) {
-		printf("grid_scale    [%zd] = %g\n", i, axes->grid_scale[i]);
-		printf("grid_intensity[%zd] = %g\n", i, axes->grid_intensity[i]);
+		aem_logf_ctx(AEM_LOG_DEBUG2, "grid_scale    [%zd] = %g", i, axes->grid_scale[i]);
+		aem_logf_ctx(AEM_LOG_DEBUG2, "grid_intensity[%zd] = %g", i, axes->grid_intensity[i]);
 	}
 #endif
 

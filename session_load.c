@@ -3,38 +3,31 @@
 #include <ctype.h>
 #include <assert.h>
 
-#include "aem/linked_list.h"
-
-#include "aem/stringbuf.h"
+#include <aem/linked_list.h>
+#include <aem/log.h>
+#include <aem/stringbuf.h>
 
 #include "graphics.h"
 #include "controls.h"
 
 #include "session_load.h"
 
-#define SESSION_LOAD_DEBUG 0
-#if SESSION_LOAD_DEBUG
-#define dprintf(...) fprintf(stderr, __VA_ARGS__)
-#else
-#define dprintf(...)
-#endif
-
 #define SESSION_LOAD_EXPECT(p, what, token) \
 	if (!aem_stringslice_match(p, token)) \
 	{ \
-		fprintf(stderr, "failed parsing " #what ": expected " token "\n"); \
+		aem_logf_ctx(AEM_LOG_ERROR, "failed parsing %s: expected %s", #what, token); \
 		return 1; \
 	}
 
 void session_load_consume_whitespace(struct aem_stringslice *p)
 {
-	while (aem_stringslice_ok(p)) {
+	while (aem_stringslice_ok(*p)) {
 		if (isspace(*p->start)) {
 			p->start++;
 		} else if (aem_stringslice_match(p, "//")) {
 			aem_stringslice_match_line(p);
 		} else if (aem_stringslice_match(p, "/*")) {
-			while (aem_stringslice_ok(p) && !aem_stringslice_match(p, "*/"))
+			while (aem_stringslice_ok(*p) && !aem_stringslice_match(p, "*/"))
 				p->start++;
 		} else {
 			break;
@@ -44,7 +37,7 @@ void session_load_consume_whitespace(struct aem_stringslice *p)
 
 int session_load_parse_boolean(struct aem_stringslice *p, int *flag)
 {
-	dprintf("parsing boolean\n");
+	aem_logf_ctx(AEM_LOG_DEBUG, "parsing boolean");
 
 	session_load_consume_whitespace(p);
 	struct aem_stringslice token = aem_stringslice_match_word(p);
@@ -56,19 +49,19 @@ int session_load_parse_boolean(struct aem_stringslice *p, int *flag)
 	else if (aem_stringslice_match(&token, "n")) *flag = 0;
 	else
 	{
-		fprintf(stderr, "failed parsing boolean\n");
+		aem_logf_ctx(AEM_LOG_ERROR, "failed parsing boolean");
 		return 1;
 	}
 
 
-	dprintf("done parsing boolean\n");
+	aem_logf_ctx(AEM_LOG_DEBUG, "done parsing boolean");
 
 	return 0;
 }
 
 int session_load_parse_color(struct aem_stringslice *p, float (*color)[4])
 {
-	dprintf("parsing color\n");
+	aem_logf_ctx(AEM_LOG_DEBUG, "parsing color");
 
 	session_load_consume_whitespace(p);
 	if (aem_stringslice_match(p, "#")) {
@@ -76,11 +69,11 @@ int session_load_parse_color(struct aem_stringslice *p, float (*color)[4])
 			session_load_consume_whitespace(p);
 			int c = aem_stringslice_match_hexbyte(p);
 			if (c == -1) {
-				dprintf("failed parsing color: expected hex number\n");
+				aem_logf_ctx(AEM_LOG_DEBUG, "failed parsing color: expected hex number");
 				return 1;
 			}
 			(*color)[i] = c / 255.0;
-			dprintf("color[%zd] = %d\n", i, c);
+			aem_logf_ctx(AEM_LOG_DEBUG, "color[%zd] = %d", i, c);
 		}
 	} else {
 		for (size_t i = 0; i < 4; i++) {
@@ -88,32 +81,32 @@ int session_load_parse_color(struct aem_stringslice *p, float (*color)[4])
 			char *pe;
 			(*color)[i] = strtof(p->start, &pe);
 			if (p->start == pe) {
-				fprintf(stderr, "failed parsing color: expected float\n");
+				aem_logf_ctx(AEM_LOG_ERROR, "failed parsing color: expected float");
 				return 1;
 			}
 			p->start = pe;
-			dprintf("color[%zd] = %g\n", i, (*color)[i]);
+			aem_logf_ctx(AEM_LOG_DEBUG, "color[%zd] = %g", i, (*color)[i]);
 		}
 	}
 
-	dprintf("done parsing color\n");
+	aem_logf_ctx(AEM_LOG_DEBUG, "done parsing color");
 
 	return 0;
 }
 
 int session_load_parse_param(struct aem_stringslice *p)
 {
-	dprintf("parsing param\n");
+	aem_logf_ctx(AEM_LOG_DEBUG, "parsing param");
 
 	session_load_consume_whitespace(p);
 	char *pe;
 	size_t count = strtol(p->start, &pe, 10);
 	if (p->start == pe) {
-		fprintf(stderr, "failed parsing param: expected integer\n");
+		aem_logf_ctx(AEM_LOG_ERROR, "failed parsing param: expected integer");
 		return 1;
 	}
 	p->start = pe;
-	dprintf("count %zd\n", count);
+	aem_logf_ctx(AEM_LOG_DEBUG, "count %zd", count);
 
 	struct graphics_graph_parameter *param = graphics_graph_parameter_new(count);
 
@@ -122,79 +115,79 @@ int session_load_parse_param(struct aem_stringslice *p)
 		char *pe;
 		param->values[i] = strtof(p->start, &pe);
 		if (p->start == pe) {
-			fprintf(stderr, "failed parsing param: expected float\n");
+			aem_logf_ctx(AEM_LOG_ERROR, "failed parsing param: expected float");
 			return 1;
 		}
 		p->start = pe;
-		dprintf("values[%zd] = %g\n", i, param->values[i]);
+		aem_logf_ctx(AEM_LOG_DEBUG, "values[%zd] = %g", i, param->values[i]);
 	}
 
 	session_load_consume_whitespace(p);
 	struct aem_stringslice name = aem_stringslice_match_line(p);
-#if SESSION_LOAD_DEBUG
-	dprintf("name ");
-	aem_stringslice_file_write(&name, stderr);
-	dprintf("\n");
-#endif
+	AEM_LOG_MULTI(out, AEM_LOG_DEBUG) {
+		aem_stringbuf_puts(out, "name ");
+		aem_stringbuf_putss(out, name);
+	}
 
 	aem_stringbuf_reset(&param->name);
-	aem_stringbuf_append_stringslice(&param->name, name);
+	aem_stringbuf_putss(&param->name, name);
 
-	dprintf("done parsing param\n");
+	aem_logf_ctx(AEM_LOG_DEBUG, "done parsing param");
 
 	return 0;
 }
 
 int session_load_parse_view(struct aem_stringslice *p, struct graphics_graph *graph)
 {
-	dprintf("parsing view\n");
+	aem_logf_ctx(AEM_LOG_DEBUG, "parsing view");
 
 	session_load_consume_whitespace(p);
 	struct aem_stringslice name = aem_stringslice_match_word(p);
-#if SESSION_LOAD_DEBUG
-	dprintf("name \"");
-	aem_stringslice_file_write(&name, stderr);
-	dprintf("\"\n");
-#endif
+
+	AEM_LOG_MULTI(out, AEM_LOG_DEBUG) {
+		aem_stringbuf_puts(out, "name ");
+		aem_stringbuf_putss(out, name);
+	}
 
 	session_load_consume_whitespace(p);
 	SESSION_LOAD_EXPECT(p, view, "=");
 
 	session_load_consume_whitespace(p);
 	struct aem_stringslice param_name = aem_stringslice_match_line(p);
-#if SESSION_LOAD_DEBUG
-	dprintf("param name \"");
-	aem_stringslice_file_write(&param_name, stderr);
-	dprintf("\"\n");
-#endif
+
+	AEM_LOG_MULTI(out, AEM_LOG_DEBUG) {
+		aem_stringbuf_puts(out, "param name ");
+		aem_stringbuf_putss(out, param_name);
+	}
 
 	struct graphics_graph_parameter *param = graphics_graph_parameter_lookup(param_name);
 	if (!param) {
-		fprintf(stderr, "failed parsing view: no such param: \"");
-		aem_stringslice_file_write(&param_name, stderr);
-		fprintf(stderr, "\"\n");
+		AEM_LOG_MULTI(out, AEM_LOG_DEBUG) {
+			aem_stringbuf_puts(out, "failed parsing view: no such param: \"");
+			aem_stringbuf_putss(out, param_name);
+			aem_stringbuf_puts(out, "\"");
+		}
 		return 1;
 	}
 	struct graphics_graph_parameter_view *view = graphics_graph_parameter_view_new(name, param);
-	AEM_LL_INSERT_BEFORE(&graph->params, view, prev, next);
+	AEM_LL2_INSERT_BEFORE(&graph->params, view, param_view);
 
-	dprintf("done parsing view\n");
+	aem_logf_ctx(AEM_LOG_DEBUG, "done parsing view");
 
 	return 0;
 }
 
 int session_load_parse_shader(struct aem_stringslice *p, struct graphics_graph *graph)
 {
-	dprintf("parsing shader\n");
+	aem_logf_ctx(AEM_LOG_DEBUG, "parsing shader");
 
 	session_load_consume_whitespace(p);
 	struct aem_stringslice type = aem_stringslice_match_line(p);
 
-#if SESSION_LOAD_DEBUG
-	dprintf("type \"");
-	aem_stringslice_file_write(&type, stderr);
-	dprintf("\"\n");
-#endif
+	AEM_LOG_MULTI(out, AEM_LOG_DEBUG) {
+		aem_stringbuf_puts(out, "type ");
+		aem_stringbuf_putss(out, type);
+	}
 
 	session_load_consume_whitespace(p);
 	SESSION_LOAD_EXPECT(p, shader, "{");
@@ -205,7 +198,7 @@ int session_load_parse_shader(struct aem_stringslice *p, struct graphics_graph *
 	shader.start = p->start;
 
 	size_t depth = 0;
-	while (aem_stringslice_ok(p)) {
+	while (aem_stringslice_ok(*p)) {
 		session_load_consume_whitespace(p);
 
 		char c = *p->start;
@@ -223,49 +216,49 @@ int session_load_parse_shader(struct aem_stringslice *p, struct graphics_graph *
 	}
 
 	shader.end = p->start;
-	while (aem_stringslice_ok(&shader) && isspace(shader.end[-1]))
+	while (aem_stringslice_ok(shader) && isspace(shader.end[-1]))
 		shader.end--;
 
 	aem_stringbuf_reset(&graph->eqn);
 
 	// unindent shader code
-	while (aem_stringslice_ok(&shader)) {
+	while (aem_stringslice_ok(shader)) {
 		struct aem_stringslice line = aem_stringslice_match_line(&shader);
 		aem_stringslice_match(&shader, "\r");
 		aem_stringslice_match(&shader, "\n");
 
 		aem_stringslice_match(&line, "\t\t\t");
 
-		aem_stringbuf_append_stringslice(&graph->eqn, line);
+		aem_stringbuf_putss(&graph->eqn, line);
 		aem_stringbuf_putc(&graph->eqn, '\n');
 	}
 
-	dprintf("done parsing shader\n");
-	dprintf("next line: \"");
+	aem_logf_ctx(AEM_LOG_DEBUG, "done parsing shader");
 	session_load_consume_whitespace(p);
 	struct aem_stringslice line = aem_stringslice_match_line(p);
-#if SESSION_LOAD_DEBUG
-	aem_stringslice_file_write(&line, stderr);
-#endif
-	dprintf("\"\n");
+	AEM_LOG_MULTI(out, AEM_LOG_DEBUG) {
+		aem_stringbuf_puts(out, "next line: \"");
+		aem_stringbuf_putss(out, line);
+		aem_stringbuf_puts(out, "\"");
+	}
 
 	return 0;
 }
 
 int session_load_parse_window_view(struct aem_stringslice *p, struct graphics_window *win)
 {
-	dprintf("parsing window view\n");
+	aem_logf_ctx(AEM_LOG_DEBUG, "parsing window view");
 
 	session_load_consume_whitespace(p);
 	{
 		char *pe;
 		win->axes.xmid = strtod(p->start, &pe);
 		if (p->start == pe) {
-			fprintf(stderr, "failed parsing window view: expected double\n");
+			aem_logf_ctx(AEM_LOG_ERROR, "failed parsing window view: expected double");
 			return 1;
 		}
 		p->start = pe;
-		dprintf("xmid %g\n", win->axes.xmid);
+		aem_logf_ctx(AEM_LOG_DEBUG, "xmid %g", win->axes.xmid);
 	}
 	session_load_consume_whitespace(p);
 	SESSION_LOAD_EXPECT(p, shader, ",");
@@ -274,11 +267,11 @@ int session_load_parse_window_view(struct aem_stringslice *p, struct graphics_wi
 		char *pe;
 		win->axes.ymid = strtod(p->start, &pe);
 		if (p->start == pe) {
-			fprintf(stderr, "failed parsing window view: expected double\n");
+			aem_logf_ctx(AEM_LOG_ERROR, "failed parsing window view: expected double");
 			return 1;
 		}
 		p->start = pe;
-		dprintf("ymid %g\n", win->axes.ymid);
+		aem_logf_ctx(AEM_LOG_DEBUG, "ymid %g", win->axes.ymid);
 	}
 	session_load_consume_whitespace(p);
 	SESSION_LOAD_EXPECT(p, shader, ";");
@@ -287,53 +280,51 @@ int session_load_parse_window_view(struct aem_stringslice *p, struct graphics_wi
 		char *pe;
 		win->axes.dp = strtod(p->start, &pe);
 		if (p->start == pe) {
-			fprintf(stderr, "failed parsing window view: expected double\n");
+			aem_logf_ctx(AEM_LOG_ERROR, "failed parsing window view: expected double");
 			return 1;
 		}
 		p->start = pe;
-		dprintf("dp %g\n", win->axes.dp);
+		aem_logf_ctx(AEM_LOG_DEBUG, "dp %g", win->axes.dp);
 	}
 
-	dprintf("done parsing window view\n");
+	aem_logf_ctx(AEM_LOG_DEBUG, "done parsing window view");
 
 	return 0;
 }
 
 int session_load_parse_graph(struct aem_stringslice *p, struct graphics_window *win)
 {
-	dprintf("parsing graph\n");
+	aem_logf_ctx(AEM_LOG_DEBUG, "parsing graph");
 
 	session_load_consume_whitespace(p);
 	struct aem_stringslice type = aem_stringslice_match_word(p);
 
-#if SESSION_LOAD_DEBUG
-	dprintf("type \"");
-	aem_stringslice_file_write(&type, stderr);
-	dprintf("\"\n");
-#endif
+	AEM_LOG_MULTI(out, AEM_LOG_DEBUG) {
+		aem_stringbuf_puts(out, "type ");
+		aem_stringbuf_putss(out, type);
+	}
 
 	session_load_consume_whitespace(p);
 	struct aem_stringslice name = aem_stringslice_match_line(p);
 
-#if SESSION_LOAD_DEBUG
-	dprintf("name \"");
-	aem_stringslice_file_write(&name, stderr);
-	dprintf("\"\n");
-#endif
+	AEM_LOG_MULTI(out, AEM_LOG_DEBUG) {
+		aem_stringbuf_puts(out, "name ");
+		aem_stringbuf_putss(out, name);
+	}
 
 	session_load_consume_whitespace(p);
 	SESSION_LOAD_EXPECT(p, graph, "{");
 
 	struct graphics_graph *graph = graphics_graph_new(win);
-	AEM_LL_INSERT_BEFORE(&win->graph_list, graph, prev, next);
-	AEM_LL_VERIFY(&win->graph_list, prev, next, assert);
+	AEM_LL2_INSERT_BEFORE(&win->graph_list, graph, graph);
+	AEM_LL2_VERIFY(&win->graph_list, graph_prev, graph_next, assert);
 
 	graph->dock = 1;
 
 	aem_stringbuf_reset(&graph->name);
-	aem_stringbuf_append_stringslice(&graph->name, name);
+	aem_stringbuf_putss(&graph->name, name);
 
-	while (aem_stringslice_ok(p)) {
+	while (aem_stringslice_ok(*p)) {
 		session_load_consume_whitespace(p);
 
 		if (aem_stringslice_match(p, "param")) {
@@ -363,14 +354,14 @@ int session_load_parse_graph(struct aem_stringslice *p, struct graphics_window *
 		} else if (aem_stringslice_match(p, "}")) {
 			break;
 		} else {
-			fprintf(stderr, "failed parsing graph\n");
+			aem_logf_ctx(AEM_LOG_ERROR, "failed parsing graph");
 			goto fail;
 		}
 	}
 
 	graphics_graph_setup(graph);
 
-	dprintf("done parsing graph\n");
+	aem_logf_ctx(AEM_LOG_DEBUG, "done parsing graph");
 
 	return 0;
 
@@ -382,16 +373,15 @@ fail:
 
 int session_load_parse_window(struct aem_stringslice *p)
 {
-	dprintf("parsing window\n");
+	aem_logf_ctx(AEM_LOG_DEBUG, "parsing window");
 
 	session_load_consume_whitespace(p);
 	struct aem_stringslice title = aem_stringslice_match_line(p);
 
-	dprintf("title \"");
-#if SESSION_LOAD_DEBUG
-	aem_stringslice_file_write(&title, stderr);
-#endif
-	dprintf("\"\n");
+	AEM_LOG_MULTI(out, AEM_LOG_DEBUG) {
+		aem_stringbuf_puts(out, "title ");
+		aem_stringbuf_putss(out, title);
+	}
 
 	session_load_consume_whitespace(p);
 	SESSION_LOAD_EXPECT(p, window, "{");
@@ -400,9 +390,9 @@ int session_load_parse_window(struct aem_stringslice *p)
 	struct graphics_window *win = graph_window_new();
 
 	aem_stringbuf_reset(&win->title);
-	aem_stringbuf_append_stringslice(&win->title, title);
+	aem_stringbuf_putss(&win->title, title);
 
-	while (aem_stringslice_ok(p)) {
+	while (aem_stringslice_ok(*p)) {
 		session_load_consume_whitespace(p);
 		if (aem_stringslice_match(p, "graph")) {
 			int rc = session_load_parse_graph(p, win);
@@ -430,19 +420,19 @@ int session_load_parse_window(struct aem_stringslice *p)
 			// TODO: error checking
 			session_load_consume_whitespace(p);
 			struct aem_stringslice eqn_pfx = aem_stringslice_match_line(p);
-			aem_stringbuf_append_stringslice(&win->eqn_pfx, eqn_pfx);
+			aem_stringbuf_putss(&win->eqn_pfx, eqn_pfx);
 			aem_stringbuf_putc(&win->eqn_pfx, '\n');
 		} else if (aem_stringslice_match(p, "}")) {
 			break;
 		} else {
-			fprintf(stderr, "failed parsing window\n");
+			aem_logf_ctx(AEM_LOG_ERROR, "failed parsing window");
 			return 1;
 		}
 	}
 
 	graphics_axes_recalculate(&win->axes);
 
-	dprintf("done parsing window\n");
+	aem_logf_ctx(AEM_LOG_DEBUG, "done parsing window");
 
 	return 0;
 }
@@ -450,8 +440,8 @@ int session_load_parse_window(struct aem_stringslice *p)
 
 int session_load_parse(struct aem_stringslice *p)
 {
-	dprintf("parsing file\n");
-	while (aem_stringslice_ok(p)) {
+	aem_logf_ctx(AEM_LOG_DEBUG, "parsing file");
+	while (aem_stringslice_ok(*p)) {
 		session_load_consume_whitespace(p);
 		if (aem_stringslice_match(p, "param")) {
 			int rc = session_load_parse_param(p);
@@ -461,21 +451,23 @@ int session_load_parse(struct aem_stringslice *p)
 			int rc = session_load_parse_window(p);
 			if (rc)
 				goto fail;
-		} else if (aem_stringslice_ok(p)) {
-			fprintf(stderr, "failed parsing\n");
+		} else if (aem_stringslice_ok(*p)) {
+			aem_logf_ctx(AEM_LOG_ERROR, "failed parsing");
 			goto fail;
 		}
 	}
 
-	dprintf("done parsing file\n");
+	aem_logf_ctx(AEM_LOG_DEBUG, "done parsing file");
 
 	return 0;
 
 fail:
-	fprintf(stderr, "failed parsing file at \"");
-	struct aem_stringslice line = aem_stringslice_match_line(p);
-	aem_stringslice_file_write(&line, stderr);
-	fprintf(stderr, "\"\n");
+	AEM_LOG_MULTI(out, AEM_LOG_DEBUG) {
+		aem_stringbuf_puts(out, "failed parsing file at \"");
+		struct aem_stringslice line = aem_stringslice_match_line(p);
+		aem_stringbuf_putss(out, line);
+		aem_stringbuf_puts(out, "\"");
+	}
 
 	return 1;
 }
@@ -485,7 +477,7 @@ int session_load_file(FILE *fp)
 	struct aem_stringbuf str;
 	aem_stringbuf_init_prealloc(&str, 4096);
 
-	aem_stringbuf_file_read(&str, fp);
+	aem_stringbuf_file_read_all(&str, fp);
 	struct aem_stringslice slice = aem_stringslice_new_str(&str);
 
 	int rc = session_load_parse(&slice);
@@ -502,7 +494,7 @@ int session_load_path(const char *path)
 
 	FILE *fp = fopen(path, "r");
 	if (!fp) {
-		fprintf(stderr, "failed to load %s\n", path);
+		aem_logf_ctx(AEM_LOG_ERROR, "failed to load %s", path);
 		return 1;
 	}
 

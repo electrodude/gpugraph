@@ -1,8 +1,8 @@
 #ifndef CONTROLS_H
 #define CONTROLS_H
 
-#include "aem/stringslice.h"
-#include "aem/stringbuf.h"
+#include <aem/stringbuf.h>
+#include <aem/stringslice.h>
 
 #include "shader.h"
 
@@ -26,8 +26,8 @@ struct graphics_graph_parameter
 
 	size_t refs;
 
-	struct graphics_graph_parameter *prev;
-	struct graphics_graph_parameter *next;
+	struct graphics_graph_parameter *param_prev;
+	struct graphics_graph_parameter *param_next;
 	int id;
 
 	int enable;
@@ -55,8 +55,8 @@ struct graphics_graph_parameter_view
 	struct graphics_graph_parameter *param;
 	GLint uniform;
 
-	struct graphics_graph_parameter_view *prev;
-	struct graphics_graph_parameter_view *next;
+	struct graphics_graph_parameter_view *param_view_prev;
+	struct graphics_graph_parameter_view *param_view_next;
 };
 
 #define graphics_graph_parameter_view_new(name, param) (graphics_graph_parameter_view_new_at(malloc(sizeof(struct graphics_graph_parameter_view)), name, param))
@@ -88,8 +88,8 @@ struct graphics_graph
 	struct aem_stringbuf eqn;
 	struct aem_stringbuf name;
 
-	struct graphics_graph *prev;
-	struct graphics_graph *next;
+	struct graphics_graph *graph_prev;
+	struct graphics_graph *graph_next;
 	int id;
 
 	float color[4];

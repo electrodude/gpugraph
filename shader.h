@@ -1,7 +1,7 @@
 #ifndef SHADER_H
 #define SHADER_H
 
-#include "aem/stringslice.h"
+#include <aem/stringslice.h>
 
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
