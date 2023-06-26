@@ -192,6 +192,7 @@ int graphics_graph_parameter_unique(struct graphics_graph_parameter **param_p)
 	return 1;
 }
 
+/*
 void graphics_graph_parameter_set_count(struct graphics_graph_parameter *param, size_t count)
 {
 	param->values = realloc(param->values, count * sizeof(float));
@@ -203,6 +204,7 @@ void graphics_graph_parameter_set_count(struct graphics_graph_parameter *param, 
 
 	param->count = count;
 }
+*/
 
 void graphics_graph_parameter_draw(struct graphics_graph_parameter *param, struct aem_stringbuf *name, struct nk_context *ctx)
 {
@@ -216,6 +218,9 @@ void graphics_graph_parameter_draw(struct graphics_graph_parameter *param, struc
 		nk_property_float(ctx, aem_stringbuf_get(name), -INFINITY, &param->values[i], INFINITY, 0.001f, 0.000001f);
 		aem_stringbuf_putc(name, '\'');
 		nk_slider_float(ctx, roundf(param->values[i])-0.6f, &param->values[i], roundf(param->values[i])+0.6f, 0.0000001f);
+
+		if (!param->animate)
+			break;
 	}
 
 	name->n = n;
@@ -300,9 +305,11 @@ void graphics_graph_parameter_view_draw(struct graphics_graph_parameter_view *vi
 // graph
 static int graphics_graph_id_next = 0;
 
-struct graphics_graph *graphics_graph_new_at(struct graphics_graph *graph)
+struct graphics_graph *graphics_graph_new_at(struct graphics_graph *graph, struct graphics_window *win)
 {
 	AEM_LL_INIT(&graph->params, prev, next);
+
+	graph->win = win;
 
 	graphics_shader_program_new(&graph->eqn_shader);
 
@@ -365,12 +372,13 @@ void graphics_graph_setup(struct graphics_graph *graph)
 {
 #if GRAPHICS_GRAPH_SETUP_DEBUG
 	printf("new function for %s:\n", aem_stringbuf_get(&graph->name));
+	puts(aem_stringbuf_get(&graph->win->eqn_pfx));
 	puts(aem_stringbuf_get(&graph->eqn));
 #endif
 
 	struct aem_stringbuf frag_shader;
 	aem_stringbuf_init_prealloc(&frag_shader, 4096);
-	aem_stringbuf_puts(&frag_shader, "#version 120\n" GLSL(
+	aem_stringbuf_puts(&frag_shader, "#version 130\n" GLSL(
 		const int GRID_ORDERS = 5;
 
 		uniform vec2 origin;
@@ -433,25 +441,29 @@ void graphics_graph_setup(struct graphics_graph *graph)
 			//return (2.0/M_PI)*atan(sqrt(x));
 		}
 
+		vec2 mapinf2unit(vec2 x)
+		{
+			//return 1.0 - exp(-x*0.2);
+			return 1.0 - 1.0 / (1.0 + sqrt(x));
+			//return (2.0/M_PI)*atan(x);
+		}
+
 		vec4 cpx_plot(in vec2 c)
 		{
 			float intensity = mapinf2unit(length(c));
 			return vec4(hsv2rgb(vec3(degrees(atan(c.y, c.x)) / 360.0, 1.0 - 2.0*abs(intensity - 0.5), intensity)), plot_color.a);
 		}
 
-		float eqn_f(in float f, in float w)
+		float eqn_f(in float f, in float r)
 		{
-			float sx = abs((f + dFdx(f)          ) + f);
-			float sy = abs((f           + dFdy(f)) + f);
-			float sb = abs((f + dFdx(f) + dFdy(f)) + f);
-			float sw = abs((f + dFdx(f) + dFdy(f)) + f);
-			float on = fwidth(f) * w / min(sx, sy);
+			float on = fwidth(f) / abs(f) * r;
+
 			return clamp(on, 0.0, 1.0);
 		}
 
 		vec4 eqn(in float f)
 		{
-			return eqn_f(f, 0.5)*plot_color;
+			return eqn_f(f, 1.0)*plot_color;
 		}
 
 		vec4 eqn_cpx_w(in vec2 a, in float w)
@@ -471,9 +483,53 @@ void graphics_graph_setup(struct graphics_graph *graph)
 
 		vec4 root_locus(in vec2 GH)
 		{
+			//float angle = cpx_exp(0.5*cpx_log(-GH)).y;
 			float angle = fract(atan(GH.y, -GH.x)/(M_PI*2.0) + 0.5) - 0.5;
 			float r = length(GH);
 			return eqn_cpx_w(vec2(angle, log(r)), 1.5);
+		}
+
+		vec4 level4(vec4 z)
+		{
+			int base = 10;
+			vec4 scl10 = log(fwidth(z))/log(base);
+			ivec4 i0 = ivec4(floor(scl10)) + ivec4(3); // TODO: what is 3?
+			vec4 stress = fract(scl10);
+			ivec4 stress_max = ivec4(base);
+			for (int i = 2; i >= 0; i--)
+			{
+				vec4 p = pow(vec4(base), i-i0);
+				vec4 v = fract(z*p) - fwidth(z)*p;
+				if (v.x < 0.0) stress_max.x = i;
+				if (v.y < 0.0) stress_max.y = i;
+				if (v.z < 0.0) stress_max.z = i;
+				if (v.w < 0.0) stress_max.w = i;
+			}
+
+			return 1.0 - (stress_max+stress)/3.0;
+		}
+
+		float level(float z) { return level4(vec4(z, 0.0, 0.0, 0.0)).x  ; }
+		vec2  level2(vec2 z) { return level4(vec4(z, 0.0, 0.0     )).xy ; }
+		vec3  level3(vec3 z) { return level4(vec4(z, 0.0          )).xyz; }
+
+		vec4 grid1(float z)
+		{
+			float c = level(z);
+			return vec4(plot_color.rgb, plot_color.a*c);
+		}
+
+		vec4 grid(vec2 z)
+		{
+			vec2 c = level2(z);
+			return vec4(c/max(c.x, c.y), 0.0, max(c.x, c.y));
+		}
+
+		vec4 grid3(vec3 z)
+		{
+			vec3 c = level3(z);
+			float cmax = max(max(c.x, c.y), c.z);
+			return vec4(c/cmax, cmax);
 		}
 
 		void main()
@@ -481,6 +537,7 @@ void graphics_graph_setup(struct graphics_graph *graph)
 			vec2 pos = gl_TexCoord[0].st;
 	));
 	aem_stringbuf_putc(&frag_shader, '\n');
+	aem_stringbuf_append(&frag_shader, &graph->win->eqn_pfx);
 	aem_stringbuf_append(&frag_shader, &graph->eqn);
 	aem_stringbuf_puts(&frag_shader, GLSL(
 		}
@@ -518,9 +575,10 @@ void graphics_graph_setup(struct graphics_graph *graph)
 	glGetProgramiv(graph->eqn_shader.program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &max_len);
 	char *name = malloc(max_len);
 
-	GLuint n_uniforms;
+	// TODO: Why is this signed?
+	GLint n_uniforms;
 	glGetProgramiv(graph->eqn_shader.program, GL_ACTIVE_UNIFORMS, &n_uniforms);
-	for (GLuint i = 0; i < n_uniforms; i++)
+	for (GLint i = 0; i < n_uniforms; i++)
 	{
 		GLint size;
 		GLenum type;
@@ -558,7 +616,7 @@ void graphics_graph_render(struct graphics_graph *graph, struct graphics_window 
 
 	glUseProgram(graph->eqn_shader.program);
 
-	glUniform4fv(2, 1, graph->color);
+	glUniform4fv(2, 1, graph->color); // TODO: hardcoded uniform location!
 	AEM_LL_FOR_ALL(view, &graph->params, prev, next)
 	{
 		struct graphics_graph_parameter *param = view->param;

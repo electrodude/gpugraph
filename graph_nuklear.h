@@ -2,8 +2,6 @@
 #define GRAPH_NUKLEAR_H
 
 #define GL_GLEXT_PROTOTYPES
-
-#define GL_GLEXT_PROTOTYPES
 #define GLFW_INCLUDE_GLU
 #define GLFW_INCLUDE_GLEXT
 #include <GLFW/glfw3.h>

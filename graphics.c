@@ -68,6 +68,8 @@ int graphics_window_init(struct graphics_window *win, const char *title)
 
 	aem_stringbuf_init_cstr(&win->title, title);
 
+	aem_stringbuf_init(&win->eqn_pfx);
+
 	struct nk_font_atlas *atlas;
 	nk_glfw3_font_stash_begin(&win->nk, &atlas);
 	// load fonts here
@@ -79,6 +81,7 @@ int graphics_window_init(struct graphics_window *win, const char *title)
 	win->id = win_id_next++;
 
 	AEM_LL_INSERT_BEFORE(&graphics_window_list, win, prev, next);
+	AEM_LL_VERIFY(&graphics_window_list, prev, next, assert);
 
 	return 0;
 }
@@ -97,6 +100,7 @@ int graphics_window_dtor(struct graphics_window *win)
 
 	nk_glfw3_destroy(&win->nk);
 
+	aem_stringbuf_dtor(&win->eqn_pfx);
 	aem_stringbuf_dtor(&win->title);
 
 	return 0;
@@ -130,7 +134,9 @@ int graphics_window_draw(struct graphics_window *win)
 			case GRAPHICS_GRAPH_ACTION_MOVE_UP:
 				if (graph->next == &win->graph_list) break; // already at top; do nothing
 				AEM_LL_REMOVE(graph, prev, next); // temporarily remove node from list
+				AEM_LL_VERIFY(&win->graph_list, prev, next, assert);
 				AEM_LL_INSERT_BEFORE(graph->next->next, graph, prev, next); // and reinsert it below the one below this one
+				AEM_LL_VERIFY(&win->graph_list, prev, next, assert);
 				graph = graph->prev->prev; // go back to get the one we moved before this one without processing
 				// this one gets processed again after the previous one, but it's fine
 				break;
@@ -138,15 +144,19 @@ int graphics_window_draw(struct graphics_window *win)
 			case GRAPHICS_GRAPH_ACTION_MOVE_DOWN:
 				if (graph->prev == &win->graph_list) break; // already at bottom; do nothing
 				AEM_LL_REMOVE(graph, prev, next); // temporarily remove node from list
+				AEM_LL_VERIFY(&win->graph_list, prev, next, assert);
 				AEM_LL_INSERT_BEFORE(graph->prev, graph, prev, next); // and reinsert it above the one above this one
+				AEM_LL_VERIFY(&win->graph_list, prev, next, assert);
 				// repeats the one that used to come before this one, but it's fine
 				break;
 
 			case GRAPHICS_GRAPH_ACTION_CLOSE:
 				AEM_LL_REMOVE(graph, prev, next);
+				AEM_LL_VERIFY(&win->graph_list, prev, next, assert);
 				struct graphics_graph *graph_prev = graph->prev;
 				AEM_LL_INSERT_BEFORE(&graph_freelist, graph, prev, next);
 				graph = graph_prev;
+				AEM_LL_VERIFY(&graph_freelist, prev, next, assert);
 				break;
 		}
 	}
@@ -211,8 +221,9 @@ int graphics_window_draw(struct graphics_window *win)
 			nk_layout_row_dynamic(ctx, 20, 2);
 			if (nk_button_label(ctx, "New Graph"))
 			{
-				struct graphics_graph *graph = graphics_graph_new();
+				struct graphics_graph *graph = graphics_graph_new(win);
 				AEM_LL_INSERT_BEFORE(&win->graph_list, graph, prev, next);
+				AEM_LL_VERIFY(&win->graph_list, prev, next, assert);
 			}
 			if (nk_button_label(ctx, "New Window"))
 			{
@@ -235,11 +246,31 @@ int graphics_window_draw(struct graphics_window *win)
 				}
 			}
 
+			nk_layout_row_dynamic(ctx, 15, 1);
+			nk_label(ctx, "Window Prefix:", NK_TEXT_LEFT);
+			nk_layout_row_dynamic(ctx, 25, 1);
+			aem_stringbuf_reserve(&win->eqn_pfx, win->eqn_pfx.n);
+			int n = win->eqn_pfx.n;
+			nk_edit_string(ctx, NK_EDIT_FIELD, win->eqn_pfx.s, &n, win->eqn_pfx.maxn-1, nk_filter_default);
+			win->eqn_pfx.n = n;
+
+			nk_layout_row_dynamic(ctx, 20, 2);
+			if (nk_button_label(ctx, "Update Pfx"))
+			{
+				AEM_LL_FOR_ALL(graph, &win->graph_list, prev, next)
+				{
+					graphics_graph_setup(graph);
+				}
+
+			}
+
 			static int grid_base = 10;
-			nk_layout_row_dynamic(ctx, 20, 1);
 			int size = win->nk.width > win->nk.height ? win->nk.width : win->nk.height;
 			int gridbase_max = ceil(sqrt(size));
+			nk_checkbox_label(ctx, "Grid Enable", &win->grid_en);
+			nk_layout_row_dynamic(ctx, 20, 1);
 			nk_property_int(ctx, "Grid Base:", 2, &grid_base, gridbase_max, 1, 1);
+			nk_layout_row_dynamic(ctx, 20, 1);
 			nk_slider_int(ctx, 2, &grid_base, gridbase_max, 1);
 			if (win->axes.grid_base_x != grid_base)
 			{
@@ -304,8 +335,8 @@ void graphics_window_render(struct graphics_window *win)
 	float bg[4];
 	nk_color_fv(bg, win->background);
 	glViewport(0, 0, win->nk.display_width, win->nk.display_height);
-	glClear(GL_COLOR_BUFFER_BIT);
 	glClearColor(bg[0], bg[1], bg[2], bg[3]);
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -326,7 +357,8 @@ void graphics_window_render(struct graphics_window *win)
 		graphics_graph_render(graph, win);
 	}
 
-	graphics_axes_render(&win->axes);
+	if (win->grid_en)
+		graphics_axes_render(&win->axes);
 
 	glUseProgram(0);
 

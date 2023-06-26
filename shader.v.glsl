@@ -1,4 +1,4 @@
-#version 120
+#version 130
 
 const int GRID_ORDERS = 5;
 

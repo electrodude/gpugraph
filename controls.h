@@ -41,7 +41,7 @@ struct graphics_graph_parameter *graphics_graph_parameter_new(size_t count);
 void graphics_graph_parameter_ref(struct graphics_graph_parameter **param_p, struct graphics_graph_parameter *param);
 void graphics_graph_parameter_unref(struct graphics_graph_parameter *param);
 
-void graphics_graph_parameter_set_count(struct graphics_graph_parameter *param, size_t count);
+//void graphics_graph_parameter_set_count(struct graphics_graph_parameter *param, size_t count);
 
 void graphics_graph_parameter_draw(struct graphics_graph_parameter *param, struct aem_stringbuf *name, struct nk_context *ctx);
 void graphics_graph_parameter_draw_settings(struct graphics_graph_parameter *param, struct nk_context *ctx);
@@ -76,6 +76,8 @@ enum graphics_graph_action
 
 struct graphics_graph
 {
+	struct graphics_window *win;
+
 	struct graphics_graph_parameter_view params;
 
 	struct graphics_shader_program eqn_shader;
@@ -101,8 +103,8 @@ struct graphics_graph
 
 struct nk_context;
 
-#define graphics_graph_new() (graphics_graph_new_at(malloc(sizeof(struct graphics_graph))))
-struct graphics_graph *graphics_graph_new_at(struct graphics_graph *graph);
+#define graphics_graph_new(win) (graphics_graph_new_at(malloc(sizeof(struct graphics_graph)), win))
+struct graphics_graph *graphics_graph_new_at(struct graphics_graph *graph, struct graphics_window *win);
 void graphics_graph_dtor(struct graphics_graph *graph);
 void graphics_graph_free(struct graphics_graph *graph);
 

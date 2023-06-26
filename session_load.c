@@ -348,7 +348,7 @@ int session_load_parse_graph(struct aem_stringslice *p, struct graphics_window *
 	session_load_consume_whitespace(p);
 	SESSION_LOAD_EXPECT(p, graph, "{");
 
-	struct graphics_graph *graph = graphics_graph_new();
+	struct graphics_graph *graph = graphics_graph_new(win);
 	AEM_LL_INSERT_BEFORE(&win->graph_list, graph, prev, next);
 	AEM_LL_VERIFY(&win->graph_list, prev, next, assert);
 
@@ -460,6 +460,19 @@ int session_load_parse_window(struct aem_stringslice *p)
 		{
 			int rc = session_load_parse_boolean(p, &win->hsv);
 			if (rc) return rc;
+		}
+		else if (aem_stringslice_match(p, "grid"))
+		{
+			int rc = session_load_parse_boolean(p, &win->grid_en);
+			if (rc) return rc;
+		}
+		else if (aem_stringslice_match(p, "pfx"))
+		{
+			// TODO: error checking
+			session_load_consume_whitespace(p);
+			struct aem_stringslice eqn_pfx = aem_stringslice_match_line(p);
+			aem_stringbuf_append_stringslice(&win->eqn_pfx, eqn_pfx);
+			aem_stringbuf_putc(&win->eqn_pfx, '\n');
 		}
 		else if (aem_stringslice_match(p, "}"))
 		{

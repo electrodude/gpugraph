@@ -32,6 +32,24 @@ void session_save_serialize(struct aem_stringbuf *str)
 
 		aem_stringbuf_printf(str, "\tview %g, %g; %g\n", win->axes.xmid, win->axes.ymid, win->axes.dp);
 
+		if (!win->grid_en)
+		{
+			aem_stringbuf_puts(str, "\n\tgrid ");
+			aem_stringbuf_putc(str, '0' + win->grid_en);
+			aem_stringbuf_putc(str, '\n');
+		}
+
+		if (win->eqn_pfx.n)
+		{
+			struct aem_stringslice eqn_pfx = aem_stringslice_new_str(&win->eqn_pfx);
+			for (struct aem_stringslice pfx_line = aem_stringslice_match_line(&eqn_pfx); aem_stringslice_ok(&pfx_line); pfx_line = aem_stringslice_match_line(&eqn_pfx))
+			{
+				aem_stringbuf_puts(str, "\n\tpfx ");
+				aem_stringbuf_append_stringslice(str, pfx_line);
+			}
+			aem_stringbuf_putc(str, '\n');
+		}
+
 		AEM_LL_FOR_ALL(graph, &win->graph_list, prev, next)
 		{
 			aem_stringbuf_puts(str, "\n\tgraph ");

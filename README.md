@@ -21,9 +21,8 @@ See [`graphs/*.txt`](graphs/) for examples.
 * Saving and loading multiple sessions
   * Group windows per session
 * Lock/Unlock x-y scrolling
-* Don't require user to write GLSL
 * Iterative functions
-  * Won't happen until I get a GPU that can do geometry shaders
+  * Won't happen until I get a GPU that can do geometry shaders or OpenCL
 * More options for parameters
   * Configurable slider range
   * Better alternative to stupid wrap-around behavior
@@ -31,6 +30,7 @@ See [`graphs/*.txt`](graphs/) for examples.
     * Draggable points
   * Replace x, x', x'', etc. with numerical diffeq solver
     * Would allow e.g. sine wave: dx/dt = y, dy/dt = -x
+* Don't require user to write GLSL
 * Computer Algebra System
   * Automatically generate Laplace transform plots from time domain functions,
     and vice versa

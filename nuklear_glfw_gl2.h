@@ -283,6 +283,7 @@ nk_glfw3_cursorpos_callback(GLFWwindow *win, double x, double y)
     struct nk_context *ctx = &glfw->ctx;
 
     /* optional grabbing behavior */
+    /*
     if (ctx->input.mouse.grab)
         glfwSetInputMode(glfw->win, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
     else if (ctx->input.mouse.ungrab)
@@ -293,6 +294,7 @@ nk_glfw3_cursorpos_callback(GLFWwindow *win, double x, double y)
         ctx->input.mouse.pos.x = ctx->input.mouse.prev.x;
         ctx->input.mouse.pos.y = ctx->input.mouse.prev.y;
     }
+    */
 }
 
 NK_API void
@@ -302,8 +304,10 @@ nk_glfw3_scroll_callback(GLFWwindow *win, double xoff, double yoff)
     if (glfw->glfw_scroll_callback != NULL && !nk_item_is_any_active(&glfw->ctx)) {
         glfw->glfw_scroll_callback(glfw, xoff, yoff);
     }
-    (void)xoff;
-    nk_input_scroll(&glfw->ctx, (float)yoff);
+    else {
+        (void)xoff;
+        nk_input_scroll(&glfw->ctx, (float)yoff);
+    }
 }
 
 NK_INTERN void
@@ -341,16 +345,16 @@ nk_glfw3_new(struct nk_glfw *glfw, const char *title)
 
     glfw->win = win;
 
-    glfwSetWindowUserPointer(win, glfw);
+    glfwSetWindowUserPointer(glfw->win, glfw);
 
-    glfwGetWindowSize(win, &glfw->width, &glfw->height);
-    glfwGetFramebufferSize(win, &glfw->display_width, &glfw->display_height);
+    glfwGetWindowSize(glfw->win, &glfw->width, &glfw->height);
+    glfwGetFramebufferSize(glfw->win, &glfw->display_width, &glfw->display_height);
 
-    glfwSetScrollCallback(win, nk_glfw3_scroll_callback);
-    glfwSetKeyCallback(win, nk_glfw3_key_callback);
-    glfwSetCharCallback(win, nk_glfw3_char_callback);
-    glfwSetMouseButtonCallback(win, nk_glfw3_mousebutton_callback);
-    glfwSetCursorPosCallback(win, nk_glfw3_cursorpos_callback);
+    glfwSetScrollCallback(glfw->win, nk_glfw3_scroll_callback);
+    glfwSetKeyCallback(glfw->win, nk_glfw3_key_callback);
+    glfwSetCharCallback(glfw->win, nk_glfw3_char_callback);
+    glfwSetMouseButtonCallback(glfw->win, nk_glfw3_mousebutton_callback);
+    glfwSetCursorPosCallback(glfw->win, nk_glfw3_cursorpos_callback);
 
     nk_init_default(&glfw->ctx, 0);
     glfw->ctx.clip.copy = nk_glfw3_clipboard_copy;
@@ -358,21 +362,9 @@ nk_glfw3_new(struct nk_glfw *glfw, const char *title)
     glfw->ctx.clip.userdata = nk_handle_ptr(glfw);
     nk_buffer_init_default(&glfw->ogl.cmds);
 
-    glfwMakeContextCurrent(win);
+    glfwMakeContextCurrent(glfw->win);
 
     return &glfw->ctx;
-}
-
-NK_API
-void nk_glfw3_destroy(struct nk_glfw *glfw)
-{
-    struct nk_glfw_device *dev = &glfw->ogl;
-    nk_font_atlas_clear(&glfw->atlas);
-    nk_free(&glfw->ctx);
-    glDeleteTextures(1, &dev->font_tex);
-    nk_buffer_free(&dev->cmds);
-    glfwDestroyWindow(glfw->win);
-    NK_MEMSET(&glfw, 0, sizeof(glfw));
 }
 
 NK_API void
@@ -407,6 +399,18 @@ nk_glfw3_new_frame(struct nk_glfw *glfw)
     glfw->fb_scale.y = (float)glfw->display_height/(float)glfw->height;
 
     glfwMakeContextCurrent(glfw->win);
+}
+
+NK_API
+void nk_glfw3_destroy(struct nk_glfw *glfw)
+{
+    struct nk_glfw_device *dev = &glfw->ogl;
+    nk_font_atlas_clear(&glfw->atlas);
+    nk_free(&glfw->ctx); // ?
+    glDeleteTextures(1, &dev->font_tex);
+    nk_buffer_free(&dev->cmds);
+    glfwDestroyWindow(glfw->win);
+    NK_MEMSET(&glfw, 0, sizeof(glfw));
 }
 
 #endif

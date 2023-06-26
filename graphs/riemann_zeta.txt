@@ -11,7 +11,7 @@ window igraph 0
 		{
 			vec2 a = -cpx_log(pos);
 			vec2 f = vec2(0.0,0.0);
-			for (float i = 1.0; i < 20.0; i++)
+			for (float i = 1.0; i < 200.0; i++)
 			{
 			    f += cpx_exp(cpx_mul(pos,vec2(log(i),0.0)));
 			}

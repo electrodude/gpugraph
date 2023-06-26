@@ -1,11 +1,11 @@
-CFLAGS+=-std=c99 -Wextra -funsafe-math-optimizations
+CFLAGS+=-std=c99 -Wall -Wextra -funsafe-math-optimizations
 LDFLAGS+=-lglfw -lX11 -lXrandr -lXi -lXxf86vm -lm -lGL -lGLU -pthread
 CC=gcc
 LD=gcc
 AR=ar rcu
 RANLIB=ranlib
 
-#CFLAGS+=-g -O0
+#CFLAGS+=-g -Og
 #LDFLAGS+=-g
 CFLAGS+=-O3
 

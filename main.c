@@ -77,6 +77,7 @@ struct graphics_window *graph_window_new(void)
 		},
 		.background = nk_rgb(0, 0, 0),
 		.hsv = 0,
+		.grid_en = 1,
 	};
 
 	graphics_window_init(win, "gpugraph");
@@ -124,7 +125,7 @@ int main(int argc, char **argv)
 	graphics_graph_parameters.id = -1;
 
 	aem_stringbuf_reset(&graphics_axes_shader_path);
-	aem_stringbuf_puts(&graphics_axes_shader_path, "/home/albertemanuel/code/c/gpugraph/");
+	aem_stringbuf_puts(&graphics_axes_shader_path, "/home/albertemanuel/code/c/gpugraph/"); // TODO: Hardcoded path!
 
 	graphics_init();
 

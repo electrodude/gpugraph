@@ -15,6 +15,8 @@ struct graphics_window
 
 	int hsv;
 
+	int grid_en;
+
 	struct aem_stringbuf title;
 
 	struct graphics_axes axes;
@@ -24,6 +26,8 @@ struct graphics_window
 	struct graphics_window *prev;
 	struct graphics_window *next;
 	int id;
+
+	struct aem_stringbuf eqn_pfx;
 };
 
 extern struct graphics_window *graphics_window_curr;

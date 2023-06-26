@@ -7,7 +7,7 @@
 
 #include "shader.h"
 
-int graphics_shader_program_new(struct graphics_shader_program *program)
+void graphics_shader_program_new(struct graphics_shader_program *program)
 {
 	program->status = GRAPHICS_SHADER_PROGRAM_CONSTRUCTING;
 
@@ -55,9 +55,9 @@ int graphics_shader_program_link(struct graphics_shader_program *program)
 int graphics_shader_program_dtor(struct graphics_shader_program *program)
 {
 	/* Not necessary, done automatically by glDeleteProgram below
-	for (shader : program->shaders)
+	AEM_LL_FOR_ALL(shader, &program->shaders, prev, next)
 	{
-		glDetachShader(program->program, shader);
+		glDetachShader(program->program, shader->id);
 	}
 	*/
 
