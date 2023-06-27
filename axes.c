@@ -10,7 +10,7 @@
 
 void graphics_axes_new(struct graphics_axes *axes)
 {
-	graphics_shader_program_new (&axes->grid_shader);
+	graphics_shader_program_init(&axes->grid_shader);
 	AEM_STRINGBUF_ON_STACK(path, graphics_axes_shader_path.n+16);
 	aem_stringbuf_append(&path, &graphics_axes_shader_path);
 	size_t i = path.n;

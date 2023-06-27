@@ -65,6 +65,7 @@ static void windowsize_callback(GLFWwindow *glfw_win, int width, int height)
 struct graphics_window *graph_window_new(void)
 {
 	struct graphics_window *win = malloc(sizeof(*win));
+	aem_assert(win);
 	*win = (struct graphics_window){
 		.nk = {
 			.width = 800, .height = 600,
@@ -158,11 +159,8 @@ int main(int argc, char **argv)
 			}
 
 			if (glfwWindowShouldClose(win->nk.win)) {
-				AEM_LL2_REMOVE(win, win);
 				graphics_axes_dtor(&win->axes);
-				graphics_window_dtor(win);
-
-				free(win);
+				graphics_window_free(win);
 			}
 		}
 
@@ -170,11 +168,8 @@ int main(int argc, char **argv)
 			graphics_window_render(win);
 
 			if (glfwWindowShouldClose(win->nk.win)) {
-				AEM_LL2_REMOVE(win, win);
 				graphics_axes_dtor(&win->axes);
-				graphics_window_dtor(win);
-
-				free(win);
+				graphics_window_free(win);
 			}
 		}
 
@@ -202,7 +197,7 @@ int main(int argc, char **argv)
 	}
 
 	AEM_LL2_FOR_ALL(win, &graphics_window_list, win) {
-		graphics_window_dtor(win);
+		graphics_window_free(win);
 	}
 
 	graphics_quit();

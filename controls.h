@@ -59,9 +59,7 @@ struct graphics_graph_parameter_view
 	struct graphics_graph_parameter_view *param_view_next;
 };
 
-#define graphics_graph_parameter_view_new(name, param) (graphics_graph_parameter_view_new_at(malloc(sizeof(struct graphics_graph_parameter_view)), name, param))
-struct graphics_graph_parameter_view *graphics_graph_parameter_view_new_at(struct graphics_graph_parameter_view *view, struct aem_stringslice name, struct graphics_graph_parameter *param);
-int graphics_graph_parameter_view_dtor(struct graphics_graph_parameter_view *view);
+struct graphics_graph_parameter_view *graphics_graph_parameter_view_new(struct aem_stringslice name, struct graphics_graph_parameter *param);
 void graphics_graph_parameter_view_free(struct graphics_graph_parameter_view *view);
 
 void graphics_graph_parameter_view_draw(struct graphics_graph_parameter_view *view, struct nk_context *ctx);
@@ -103,9 +101,7 @@ struct graphics_graph
 
 struct nk_context;
 
-#define graphics_graph_new(win) (graphics_graph_new_at(malloc(sizeof(struct graphics_graph)), win))
-struct graphics_graph *graphics_graph_new_at(struct graphics_graph *graph, struct graphics_window *win);
-void graphics_graph_dtor(struct graphics_graph *graph);
+struct graphics_graph *graphics_graph_new(struct graphics_window *win);
 void graphics_graph_free(struct graphics_graph *graph);
 
 void graphics_graph_setup(struct graphics_graph *graph);

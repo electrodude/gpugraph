@@ -91,12 +91,14 @@ struct graphics_graph_parameter *graphics_graph_parameter_lookup(struct aem_stri
 struct graphics_graph_parameter *graphics_graph_parameter_new(size_t count)
 {
 	struct graphics_graph_parameter *param = malloc(sizeof(*param));
+	aem_assert(param);
 
 	aem_stringbuf_init(&param->name);
 
 	param->count = count;
 
 	param->values = malloc(param->count*sizeof(float));
+	aem_assert(param->values);
 
 	for (size_t i = 0; i < param->count; i++)
 		param->values[i] = 0.0f;
@@ -241,8 +243,11 @@ int graphics_graph_parameter_update_all(float dt)
 
 // graph parameter view
 
-struct graphics_graph_parameter_view *graphics_graph_parameter_view_new_at(struct graphics_graph_parameter_view *view, struct aem_stringslice name, struct graphics_graph_parameter *param)
+struct graphics_graph_parameter_view *graphics_graph_parameter_view_new(struct aem_stringslice name, struct graphics_graph_parameter *param)
 {
+	struct graphics_graph_parameter_view *view = malloc(sizeof(*view));
+	aem_assert(view);
+
 	view->param = NULL;
 	graphics_graph_parameter_ref(&view->param, param);
 
@@ -252,20 +257,13 @@ struct graphics_graph_parameter_view *graphics_graph_parameter_view_new_at(struc
 	return view;
 }
 
-int graphics_graph_parameter_view_dtor(struct graphics_graph_parameter_view *view)
+void graphics_graph_parameter_view_free(struct graphics_graph_parameter_view *view)
 {
 	AEM_LL2_REMOVE(view, param_view);
 
 	graphics_graph_parameter_unref(view->param);
 
 	aem_stringbuf_dtor(&view->name);
-
-	return 0;
-}
-
-void graphics_graph_parameter_view_free(struct graphics_graph_parameter_view *view)
-{
-	graphics_graph_parameter_view_dtor(view);
 
 	free(view);
 }
@@ -279,13 +277,16 @@ void graphics_graph_parameter_view_draw(struct graphics_graph_parameter_view *vi
 // graph
 static int graphics_graph_id_next = 0;
 
-struct graphics_graph *graphics_graph_new_at(struct graphics_graph *graph, struct graphics_window *win)
+struct graphics_graph *graphics_graph_new(struct graphics_window *win)
 {
+	struct graphics_graph *graph = malloc(sizeof(*graph));
+	aem_assert(graph);
+
 	AEM_LL2_INIT(&graph->params, param_view);
 
 	graph->win = win;
 
-	graphics_shader_program_new(&graph->eqn_shader);
+	graphics_shader_program_init(&graph->eqn_shader);
 
 	aem_stringbuf_init_prealloc(&graph->eqn, 512);
 	aem_stringbuf_init_prealloc(&graph->name, 32);
@@ -316,23 +317,17 @@ struct graphics_graph *graphics_graph_new_at(struct graphics_graph *graph, struc
 	return graph;
 }
 
-void graphics_graph_dtor(struct graphics_graph *graph)
+void graphics_graph_free(struct graphics_graph *graph)
 {
-	AEM_LL2_REMOVE(graph, graph);
-
-	AEM_LL2_FOR_ALL(view, &graph->params, param_view) {
-		struct graphics_graph_parameter *param = view->param;
-
+	AEM_LL_WHILE_FIRST(view, &graph->params, param_view_next) {
 		graphics_graph_parameter_view_free(view);
 	}
+
+	AEM_LL2_REMOVE(graph, graph);
+
 	graphics_shader_program_dtor(&graph->eqn_shader);
 	aem_stringbuf_dtor(&graph->name);
 	aem_stringbuf_dtor(&graph->eqn);
-}
-
-void graphics_graph_free(struct graphics_graph *graph)
-{
-	graphics_graph_dtor(graph);
 
 	free(graph);
 }
@@ -524,7 +519,7 @@ void graphics_graph_setup(struct graphics_graph *graph)
 	}
 
 	graphics_shader_program_dtor(&graph->eqn_shader);
-	graphics_shader_program_new (&graph->eqn_shader);
+	graphics_shader_program_init(&graph->eqn_shader);
 	AEM_STRINGBUF_ON_STACK(path, graphics_axes_shader_path.n+16);
 	aem_stringbuf_append(&path, &graphics_axes_shader_path);
 	size_t i = path.n;
@@ -549,6 +544,7 @@ void graphics_graph_setup(struct graphics_graph *graph)
 	GLint max_len;
 	glGetProgramiv(graph->eqn_shader.program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &max_len);
 	char *name = malloc(max_len);
+	aem_assert(name);
 
 	// TODO: Why is this signed?
 	GLint n_uniforms;

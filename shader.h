@@ -18,7 +18,7 @@ struct graphics_shader_program
 	GLuint program;
 };
 
-void graphics_shader_program_new(struct graphics_shader_program *program);
+void graphics_shader_program_init(struct graphics_shader_program *program);
 int graphics_shader_program_link(struct graphics_shader_program *program);
 int graphics_shader_program_dtor(struct graphics_shader_program *program);
 

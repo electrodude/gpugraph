@@ -7,7 +7,7 @@
 
 #include "shader.h"
 
-void graphics_shader_program_new(struct graphics_shader_program *program)
+void graphics_shader_program_init(struct graphics_shader_program *program)
 {
 	program->status = GRAPHICS_SHADER_PROGRAM_CONSTRUCTING;
 

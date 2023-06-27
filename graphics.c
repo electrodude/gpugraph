@@ -86,7 +86,7 @@ int graphics_window_init(struct graphics_window *win, const char *title)
 	return 0;
 }
 
-int graphics_window_dtor(struct graphics_window *win)
+void graphics_window_free(struct graphics_window *win)
 {
 	AEM_LL_WHILE_FIRST(graph, &win->graph_list, graph_next) {
 		graphics_graph_free(graph);
@@ -99,7 +99,9 @@ int graphics_window_dtor(struct graphics_window *win)
 	aem_stringbuf_dtor(&win->eqn_pfx);
 	aem_stringbuf_dtor(&win->title);
 
-	return 0;
+	AEM_LL2_REMOVE(win, win);
+
+	free(win);
 }
 
 void graphics_window_update_title(struct graphics_window *win)

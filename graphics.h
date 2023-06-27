@@ -34,7 +34,7 @@ extern struct graphics_window *graphics_window_curr;
 extern struct graphics_window graphics_window_list;
 
 int graphics_window_init(struct graphics_window *win, const char *title);
-int graphics_window_dtor(struct graphics_window *win);
+void graphics_window_free(struct graphics_window *win);
 
 static inline void graphics_window_select(struct graphics_window *win);
 
