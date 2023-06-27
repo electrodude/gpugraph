@@ -81,7 +81,7 @@ static int param_id_next = 0;
 struct graphics_graph_parameter *graphics_graph_parameter_lookup(struct aem_stringslice name)
 {
 	AEM_LL2_FOR_ALL(param, &graphics_graph_parameters, param) {
-		if (aem_stringslice_match(&name, aem_stringbuf_get(&param->name)))
+		if (!aem_stringslice_cmp(aem_stringslice_new_str(&param->name), name))
 			return param;
 	}
 
