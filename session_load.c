@@ -123,7 +123,7 @@ int session_load_parse_param(struct aem_stringslice *p)
 	}
 
 	session_load_consume_whitespace(p);
-	struct aem_stringslice name = aem_stringslice_match_line(p);
+	struct aem_stringslice name = aem_stringslice_trim(aem_stringslice_match_line(p));
 	AEM_LOG_MULTI(out, AEM_LOG_DEBUG) {
 		aem_stringbuf_puts(out, "name ");
 		aem_stringbuf_putss(out, name);
@@ -153,7 +153,7 @@ int session_load_parse_view(struct aem_stringslice *p, struct graphics_graph *gr
 	SESSION_LOAD_EXPECT(p, view, "=");
 
 	session_load_consume_whitespace(p);
-	struct aem_stringslice param_name = aem_stringslice_match_line(p);
+	struct aem_stringslice param_name = aem_stringslice_trim(aem_stringslice_match_line(p));
 
 	AEM_LOG_MULTI(out, AEM_LOG_DEBUG) {
 		aem_stringbuf_puts(out, "param name ");
@@ -182,7 +182,7 @@ int session_load_parse_shader(struct aem_stringslice *p, struct graphics_graph *
 	aem_logf_ctx(AEM_LOG_DEBUG, "parsing shader");
 
 	session_load_consume_whitespace(p);
-	struct aem_stringslice type = aem_stringslice_match_line(p);
+	struct aem_stringslice type = aem_stringslice_trim(aem_stringslice_match_line(p));
 
 	AEM_LOG_MULTI(out, AEM_LOG_DEBUG) {
 		aem_stringbuf_puts(out, "type ");
@@ -223,9 +223,7 @@ int session_load_parse_shader(struct aem_stringslice *p, struct graphics_graph *
 
 	// unindent shader code
 	while (aem_stringslice_ok(shader)) {
-		struct aem_stringslice line = aem_stringslice_match_line(&shader);
-		aem_stringslice_match(&shader, "\r");
-		aem_stringslice_match(&shader, "\n");
+		struct aem_stringslice line = aem_stringslice_trim(aem_stringslice_match_line(&shader));
 
 		aem_stringslice_match(&line, "\t\t\t");
 
@@ -235,7 +233,7 @@ int session_load_parse_shader(struct aem_stringslice *p, struct graphics_graph *
 
 	aem_logf_ctx(AEM_LOG_DEBUG, "done parsing shader");
 	session_load_consume_whitespace(p);
-	struct aem_stringslice line = aem_stringslice_match_line(p);
+	struct aem_stringslice line = aem_stringslice_trim(aem_stringslice_match_line(p));
 	AEM_LOG_MULTI(out, AEM_LOG_DEBUG) {
 		aem_stringbuf_puts(out, "next line: \"");
 		aem_stringbuf_putss(out, line);
@@ -305,7 +303,7 @@ int session_load_parse_graph(struct aem_stringslice *p, struct graphics_window *
 	}
 
 	session_load_consume_whitespace(p);
-	struct aem_stringslice name = aem_stringslice_match_line(p);
+	struct aem_stringslice name = aem_stringslice_trim(aem_stringslice_match_line(p));
 
 	AEM_LOG_MULTI(out, AEM_LOG_DEBUG) {
 		aem_stringbuf_puts(out, "name ");
@@ -376,7 +374,7 @@ int session_load_parse_window(struct aem_stringslice *p)
 	aem_logf_ctx(AEM_LOG_DEBUG, "parsing window");
 
 	session_load_consume_whitespace(p);
-	struct aem_stringslice title = aem_stringslice_match_line(p);
+	struct aem_stringslice title = aem_stringslice_trim(aem_stringslice_match_line(p));
 
 	AEM_LOG_MULTI(out, AEM_LOG_DEBUG) {
 		aem_stringbuf_puts(out, "title ");
@@ -419,7 +417,7 @@ int session_load_parse_window(struct aem_stringslice *p)
 		} else if (aem_stringslice_match(p, "pfx")) {
 			// TODO: error checking
 			session_load_consume_whitespace(p);
-			struct aem_stringslice eqn_pfx = aem_stringslice_match_line(p);
+			struct aem_stringslice eqn_pfx = aem_stringslice_trim(aem_stringslice_match_line(p));
 			aem_stringbuf_putss(&win->eqn_pfx, eqn_pfx);
 			aem_stringbuf_putc(&win->eqn_pfx, '\n');
 		} else if (aem_stringslice_match(p, "}")) {
