@@ -30,7 +30,6 @@ struct graphics_window
 	struct aem_stringbuf eqn_pfx;
 };
 
-extern struct graphics_window *graphics_window_curr;
 extern struct graphics_window graphics_window_list;
 
 int graphics_window_init(struct graphics_window *win, const char *title);
@@ -48,11 +47,8 @@ void graphics_window_render(struct graphics_window *win);
 
 static inline void graphics_window_select(struct graphics_window *win)
 {
-	if (graphics_window_curr != win)
-	{
-		graphics_window_curr = win;
-		glfwMakeContextCurrent(win->nk.win);
-	}
+	glfwMakeContextCurrent(win->nk.win);
 }
+
 
 #endif /* GRAPHICS_H */

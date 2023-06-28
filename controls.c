@@ -285,6 +285,7 @@ struct graphics_graph *graphics_graph_new(struct graphics_window *win)
 	AEM_LL2_INIT(&graph->params, param_view);
 
 	graph->win = win;
+	graphics_window_select(graph->win);
 
 	graphics_shader_program_init(&graph->eqn_shader);
 
@@ -518,6 +519,7 @@ void graphics_graph_setup(struct graphics_graph *graph)
 		aem_stringbuf_append(out, &frag_shader);
 	}
 
+	graphics_window_select(graph->win);
 	graphics_shader_program_dtor(&graph->eqn_shader);
 	graphics_shader_program_init(&graph->eqn_shader);
 	AEM_STRINGBUF_ON_STACK(path, graphics_axes_shader_path.n+16);

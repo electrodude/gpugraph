@@ -29,7 +29,6 @@ static void gr_error_callback(int error, const char *description)
 	aem_logf_ctx(AEM_LOG_ERROR, "%d: %s", error, description);
 }
 
-struct graphics_window *graphics_window_curr = NULL;
 struct graphics_window graphics_window_list;
 
 int graphics_init(void)
@@ -50,8 +49,6 @@ int graphics_init(void)
 
 int graphics_quit(void)
 {
-	graphics_window_curr = NULL;
-
 	glfwTerminate();
 
 	return 0;
@@ -88,12 +85,13 @@ int graphics_window_init(struct graphics_window *win, const char *title)
 
 void graphics_window_free(struct graphics_window *win)
 {
+	graphics_window_select(win);
+
 	AEM_LL_WHILE_FIRST(graph, &win->graph_list, graph_next) {
 		graphics_graph_free(graph);
 	}
 
-	graphics_window_select(win);
-
+	graphics_axes_dtor(&win->axes);
 	nk_glfw3_destroy(&win->nk);
 
 	aem_stringbuf_dtor(&win->eqn_pfx);
@@ -188,7 +186,6 @@ int graphics_window_draw(struct graphics_window *win)
 				}
 
 				session_load_curr();
-				graphics_window_select(win);
 			}
 			nk_layout_row_dynamic(ctx, 20, 2);
 			if (nk_button_label(ctx, "New")) {
@@ -200,7 +197,6 @@ int graphics_window_draw(struct graphics_window *win)
 				aem_stringbuf_reset(&session_path);
 				struct graphics_window *graph_window_new(void); // from main.c
 				graph_window_new();
-				graphics_window_select(win);
 			}
 			if (nk_button_label(ctx, "Quit")) {
 				aem_logf_ctx(AEM_LOG_NYI, "Quit button");
@@ -306,8 +302,6 @@ int graphics_window_draw(struct graphics_window *win)
 
 void graphics_window_render(struct graphics_window *win)
 {
-	//graphics_window_select(win);
-
 	nk_glfw3_new_frame(&win->nk);
 
 	graphics_check_gl_error("pre gl setup");

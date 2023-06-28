@@ -154,14 +154,12 @@ int main(int argc, char **argv)
 		}
 
 		AEM_LL2_FOR_ALL(win, &graphics_window_list, win) {
-			graphics_window_select(win);
 			if (graphics_window_draw(win)) {
 				//animating = 1;
 			}
 			graphics_window_render(win);
 
 			if (glfwWindowShouldClose(win->nk.win)) {
-				graphics_axes_dtor(&win->axes);
 				graphics_window_free(win);
 			}
 
@@ -176,7 +174,6 @@ int main(int argc, char **argv)
 		}
 		graphics_check_gl_error("events");
 		AEM_LL2_FOR_ALL(win, &graphics_window_list, win) {
-			graphics_window_select(win);
 			nk_input_end(&win->nk.ctx);
 		}
 	}
