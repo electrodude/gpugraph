@@ -160,7 +160,10 @@ int main(int argc, char **argv)
 			graphics_window_render(win);
 
 			if (glfwWindowShouldClose(win->nk.win)) {
+				struct graphics_window *win_prev = win->win_prev;
 				graphics_window_free(win);
+				win = win_prev;
+				continue;
 			}
 
 			nk_input_begin(&win->nk.ctx);
@@ -183,7 +186,7 @@ int main(int argc, char **argv)
 		session_save_path("session_quit.txt");
 	}
 
-	AEM_LL2_FOR_ALL(win, &graphics_window_list, win) {
+	AEM_LL_WHILE_FIRST(win, &graphics_window_list, win_next) {
 		graphics_window_free(win);
 	}
 
