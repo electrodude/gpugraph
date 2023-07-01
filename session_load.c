@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <assert.h>
 
 #include <aem/linked_list.h>
 #include <aem/log.h>
@@ -315,7 +314,7 @@ int session_load_parse_graph(struct aem_stringslice *p, struct graphics_window *
 
 	struct graphics_graph *graph = graphics_graph_new(win);
 	AEM_LL2_INSERT_BEFORE(&win->graph_list, graph, graph);
-	AEM_LL2_VERIFY(&win->graph_list, graph_prev, graph_next, assert);
+	AEM_LL2_VERIFY(&win->graph_list, graph_prev, graph_next, aem_assert);
 
 	graph->dock = 1;
 

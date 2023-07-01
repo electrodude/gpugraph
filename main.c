@@ -127,7 +127,8 @@ int main(int argc, char **argv)
 	aem_stringbuf_reset(&graphics_axes_shader_path);
 	aem_stringbuf_puts(&graphics_axes_shader_path, "/home/albertemanuel/code/c/gpugraph/"); // TODO: Hardcoded path!
 
-	graphics_init();
+	if (graphics_init() < 0)
+		return 1;
 
 	if (argc > 1) {
 		const char *f = argv[1];

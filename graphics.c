@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
-#include <assert.h>
 
 #define MAX_VERTEX_BUFFER 512 * 1024
 #define MAX_ELEMENT_BUFFER 128 * 1024
@@ -58,6 +57,8 @@ static int win_id_next = 0;
 
 int graphics_window_init(struct graphics_window *win, const char *title)
 {
+	aem_assert(win);
+
 	struct nk_context *ctx = nk_glfw3_new(&win->nk, title);
 
 	win->nk.userdata = nk_handle_ptr(win);
@@ -78,13 +79,15 @@ int graphics_window_init(struct graphics_window *win, const char *title)
 	win->id = win_id_next++;
 
 	AEM_LL2_INSERT_BEFORE(&graphics_window_list, win, win);
-	AEM_LL2_VERIFY(&graphics_window_list, win_prev, win_next, assert);
+	AEM_LL2_VERIFY(&graphics_window_list, win_prev, win_next, aem_assert);
 
 	return 0;
 }
 
 void graphics_window_free(struct graphics_window *win)
 {
+	aem_assert(win);
+
 	graphics_window_select(win);
 
 	AEM_LL_WHILE_FIRST(graph, &win->graph_list, graph_next) {
@@ -104,11 +107,15 @@ void graphics_window_free(struct graphics_window *win)
 
 void graphics_window_update_title(struct graphics_window *win)
 {
+	aem_assert(win);
+
 	glfwSetWindowTitle(win->nk.win, aem_stringbuf_get(&win->title));
 }
 
 int graphics_window_draw(struct graphics_window *win)
 {
+	aem_assert(win);
+
 	struct nk_context *ctx = &win->nk.ctx;
 
 	int animating = 0;
@@ -129,9 +136,9 @@ int graphics_window_draw(struct graphics_window *win)
 				if (graph->graph_next == &win->graph_list)
 					break; // already at top; do nothing
 				AEM_LL2_REMOVE(graph, graph); // temporarily remove node from list
-				AEM_LL2_VERIFY(&win->graph_list, graph_prev, graph_next, assert);
+				AEM_LL2_VERIFY(&win->graph_list, graph_prev, graph_next, aem_assert);
 				AEM_LL2_INSERT_BEFORE(graph->graph_next->graph_next, graph, graph); // and reinsert it below the one below this one
-				AEM_LL2_VERIFY(&win->graph_list, graph_prev, graph_next, assert);
+				AEM_LL2_VERIFY(&win->graph_list, graph_prev, graph_next, aem_assert);
 				graph = graph->graph_prev->graph_prev; // go back to get the one we moved before this one without processing
 				// this one gets processed again after the previous one, but it's fine
 				break;
@@ -140,19 +147,19 @@ int graphics_window_draw(struct graphics_window *win)
 				if (graph->graph_prev == &win->graph_list)
 					break; // already at bottom; do nothing
 				AEM_LL2_REMOVE(graph, graph); // temporarily remove node from list
-				AEM_LL2_VERIFY(&win->graph_list, graph_prev, graph_next, assert);
+				AEM_LL2_VERIFY(&win->graph_list, graph_prev, graph_next, aem_assert);
 				AEM_LL2_INSERT_BEFORE(graph->graph_prev, graph, graph); // and reinsert it above the one above this one
-				AEM_LL2_VERIFY(&win->graph_list, graph_prev, graph_next, assert);
+				AEM_LL2_VERIFY(&win->graph_list, graph_prev, graph_next, aem_assert);
 				// repeats the one that used to come before this one, but it's fine
 				break;
 
 			case GRAPHICS_GRAPH_ACTION_CLOSE:
 				AEM_LL2_REMOVE(graph, graph);
-				AEM_LL2_VERIFY(&win->graph_list, graph_prev, graph_next, assert);
+				AEM_LL2_VERIFY(&win->graph_list, graph_prev, graph_next, aem_assert);
 				struct graphics_graph *graph_prev = graph->graph_prev;
 				AEM_LL2_INSERT_BEFORE(&graph_freelist, graph, graph);
 				graph = graph_prev;
-				AEM_LL2_VERIFY(&graph_freelist, graph_prev, graph_next, assert);
+				AEM_LL2_VERIFY(&graph_freelist, graph_prev, graph_next, aem_assert);
 				break;
 		}
 	}
@@ -209,7 +216,7 @@ int graphics_window_draw(struct graphics_window *win)
 			if (nk_button_label(ctx, "New Graph")) {
 				struct graphics_graph *graph = graphics_graph_new(win);
 				AEM_LL2_INSERT_BEFORE(&win->graph_list, graph, graph);
-				AEM_LL2_VERIFY(&win->graph_list, graph_prev, graph_next, assert);
+				AEM_LL2_VERIFY(&win->graph_list, graph_prev, graph_next, aem_assert);
 			}
 			if (nk_button_label(ctx, "New Window")) {
 				struct graphics_window *graph_window_new(void); // from main.c

@@ -285,6 +285,7 @@ struct graphics_graph *graphics_graph_new(struct graphics_window *win)
 	AEM_LL2_INIT(&graph->params, param_view);
 
 	graph->win = win;
+	aem_assert(graph->win);
 	graphics_window_select(graph->win);
 
 	graphics_shader_program_init(&graph->eqn_shader);
@@ -336,6 +337,8 @@ void graphics_graph_free(struct graphics_graph *graph)
 #define GLSL(code) #code
 void graphics_graph_setup(struct graphics_graph *graph)
 {
+	aem_assert(graph);
+
 	AEM_LOG_MULTI(out, AEM_LOG_DEBUG2) {
 		aem_stringbuf_puts(out, "new function for ");
 		aem_stringbuf_append(out, &graph->name);
