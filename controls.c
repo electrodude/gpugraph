@@ -550,9 +550,9 @@ void graphics_graph_setup(struct graphics_graph *graph)
 
 	GLint max_len;
 	glGetProgramiv(graph->eqn_shader.program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &max_len);
-	char *name = malloc(max_len);
-	aem_assert(name);
 
+	struct aem_stringbuf name = {0};
+	aem_stringbuf_reserve(&name, max_len);
 	// TODO: Why is this signed?
 	GLint n_uniforms;
 	glGetProgramiv(graph->eqn_shader.program, GL_ACTIVE_UNIFORMS, &n_uniforms);
@@ -560,12 +560,13 @@ void graphics_graph_setup(struct graphics_graph *graph)
 		GLint size;
 		GLenum type;
 		GLsizei n;
-		glGetActiveUniform(graph->eqn_shader.program, i, max_len, &n, &size, &type, name);
+		glGetActiveUniform(graph->eqn_shader.program, i, name.maxn, &n, &size, &type, name.s);
+		name.n = n;
 
-		aem_logf_ctx(AEM_LOG_DEBUG2, "uniform %d: type %u, size %u: %s", i, type, size, name);
+		aem_logf_ctx(AEM_LOG_DEBUG2, "uniform %d: type %u, size %u: %s", i, type, size, name.s);
 
 	}
-	free(name);
+	aem_stringbuf_dtor(&name);
 
 	AEM_LL2_FOR_ALL(view, &graph->params, param_view) {
 		struct graphics_graph_parameter *param = view->param;
