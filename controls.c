@@ -543,6 +543,11 @@ void graphics_graph_setup(struct graphics_graph *graph)
 	graph->params.n = 0;
 #endif
 
+	graphics_axes_uniforms_setup(&graph->uniforms, &graph->eqn_shader);
+
+	graph->uniform_plot_color = glGetUniformLocation(graph->eqn_shader.program, "plot_color");
+	aem_logf_ctx(graph->uniform_plot_color != -1 ? AEM_LOG_DEBUG2 : AEM_LOG_ERROR, "plot_color = %d", graph->uniform_plot_color);
+
 	GLint max_len;
 	glGetProgramiv(graph->eqn_shader.program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &max_len);
 	char *name = malloc(max_len);
@@ -585,7 +590,7 @@ void graphics_graph_render(struct graphics_graph *graph, struct graphics_window 
 
 	glUseProgram(graph->eqn_shader.program);
 
-	glUniform4fv(2, 1, graph->color); // TODO: hardcoded uniform location!
+	glUniform4fv(graph->uniform_plot_color, 1, graph->color);
 	AEM_LL2_FOR_ALL(view, &graph->params, param_view) {
 		struct graphics_graph_parameter *param = view->param;
 
@@ -593,7 +598,7 @@ void graphics_graph_render(struct graphics_graph *graph, struct graphics_window 
 			glUniform1f(view->uniform, param->values[0]);
 	}
 
-	graphics_axes_shader_render(&win->axes);
+	graphics_axes_shader_render(&win->axes, &graph->uniforms);
 }
 
 int graphics_graph_update(struct graphics_graph *graph)

@@ -21,15 +21,8 @@ void graphics_axes_new(struct graphics_axes *axes)
 	graphics_shader_add_file    (&axes->grid_shader, GL_FRAGMENT_SHADER, aem_stringbuf_get(&path));
 	aem_stringbuf_dtor(&path);
 	graphics_shader_program_link(&axes->grid_shader);
-	axes->uniform_origin = glGetUniformLocation(axes->grid_shader.program, "origin");
-	axes->uniform_scale = glGetUniformLocation(axes->grid_shader.program, "scale");
-	axes->uniform_grid_scale = glGetUniformLocation(axes->grid_shader.program, "grid_scale");
-	axes->uniform_grid_intensity = glGetUniformLocation(axes->grid_shader.program, "grid_intensity");
 
-	aem_logf_ctx(AEM_LOG_DEBUG, "axes location(origin) = %d", axes->uniform_origin);
-	aem_logf_ctx(AEM_LOG_DEBUG, "axes location(scale) = %d", axes->uniform_scale);
-	aem_logf_ctx(AEM_LOG_DEBUG, "axes location(grid_scale) = %d", axes->uniform_grid_scale);
-	aem_logf_ctx(AEM_LOG_DEBUG, "axes location(grid_intensity) = %d", axes->uniform_grid_intensity);
+	graphics_axes_uniforms_setup(&axes->uniforms, &axes->grid_shader);
 
 	aem_assert(axes->grid_shader.status == GRAPHICS_SHADER_PROGRAM_LINKED);
 }
@@ -90,19 +83,43 @@ static const GLfloat vertices[8] =
 	 1.0f,  1.0f,
 };
 
-void graphics_axes_shader_render(struct graphics_axes *axes)
+void graphics_axes_uniforms_setup(struct graphics_axes_uniforms *u, struct graphics_shader_program *pgm)
 {
+	aem_assert(u);
+	aem_assert(pgm);
+
+	glUseProgram(pgm->program);
+	u->origin = glGetUniformLocation(pgm->program, "origin");
+	u->scale = glGetUniformLocation(pgm->program, "scale");
+	u->grid_scale = glGetUniformLocation(pgm->program, "grid_scale");
+	u->grid_intensity = glGetUniformLocation(pgm->program, "grid_intensity");
+
+	aem_logf_ctx(AEM_LOG_DEBUG, "program = %d", pgm->program);
+	aem_logf_ctx(AEM_LOG_DEBUG, "location(origin) = %d", u->origin);
+	aem_logf_ctx(AEM_LOG_DEBUG, "location(scale) = %d", u->scale);
+	aem_logf_ctx(AEM_LOG_DEBUG, "location(grid_scale) = %d", u->grid_scale);
+	aem_logf_ctx(AEM_LOG_DEBUG, "location(grid_intensity) = %d", u->grid_intensity);
+}
+void graphics_axes_shader_render(struct graphics_axes *axes, struct graphics_axes_uniforms *u)
+{
+	aem_assert(axes);
+	aem_assert(u);
+
+	graphics_check_gl_error("graphics_axes_render: pre glUniform*");
+	if (u->origin != -1)
+		glUniform2f(u->origin, axes->xmid, axes->ymid);
+	if (u->scale != -1)
+		glUniform2f(u->scale, axes->dp*axes->width*0.5, axes->dp*axes->height*0.5);
+	if (u->grid_scale != -1)
+		glUniform1fv(u->grid_scale, GRID_ORDERS, axes->grid_scale);
+	if (u->grid_intensity != -1)
+		glUniform1fv(u->grid_intensity, GRID_ORDERS, axes->grid_intensity);
+	graphics_check_gl_error("graphics_axes_render: post glUniform* 4");
+
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	glVertexPointer  (2, GL_FLOAT, 2*sizeof(GLfloat), vertices);
 	glTexCoordPointer(2, GL_FLOAT, 2*sizeof(GLfloat), vertices);
-
-	graphics_check_gl_error("graphics_axes_shader_render: pre glUniform*");
-	glUniform2f(axes->uniform_origin, axes->xmid, axes->ymid);
-	glUniform2f(axes->uniform_scale, axes->dp*axes->width*0.5, axes->dp*axes->height*0.5);
-	glUniform1fv(axes->uniform_grid_scale, GRID_ORDERS, axes->grid_scale);
-	glUniform1fv(axes->uniform_grid_intensity, GRID_ORDERS, axes->grid_intensity);
-	graphics_check_gl_error("graphics_axes_shader_render: post glUniform*");
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
@@ -111,5 +128,5 @@ void graphics_axes_render(struct graphics_axes *axes)
 {
 	glUseProgram(axes->grid_shader.program);
 
-	graphics_axes_shader_render(axes);
+	graphics_axes_shader_render(axes, &axes->uniforms);
 }

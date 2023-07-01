@@ -4,6 +4,7 @@
 #include <aem/stringbuf.h>
 #include <aem/stringslice.h>
 
+#include "axes.h"
 #include "shader.h"
 
 #include "graph_nuklear.h"
@@ -79,6 +80,9 @@ struct graphics_graph
 	struct graphics_graph_parameter_view params;
 
 	struct graphics_shader_program eqn_shader;
+
+	struct graphics_axes_uniforms uniforms;
+	int uniform_plot_color;
 #if 0
 	GLuint param_uniform;
 #endif
