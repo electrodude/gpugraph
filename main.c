@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <unistd.h>
 
 #include <aem/linked_list.h>
 
@@ -105,9 +106,40 @@ struct graphics_window *graph_window_new(void)
 
 struct aem_stringbuf graphics_axes_shader_path = {0};
 
+void usage(const char *cmd)
+{
+	fprintf(stderr, "Usage: %s [<options>] [<session.gpugraph>]\n", cmd);
+	fprintf(stderr, "   %-20s%s\n", "[-h]", "show this help");
+	fprintf(stderr, "   %-20s%s (default: %s)\n", "[-v<loglevel>]", "set log level", aem_log_level_describe(aem_log_module_default.loglevel));
+	fprintf(stderr, "   %-20s%s\n", "[-l<logfile>]", "set log file");
+}
 int main(int argc, char **argv)
 {
 	aem_log_stderr();
+
+	const char *argv0 = argv[0];
+
+	int opt;
+	while ((opt = getopt(argc, argv, "l:v:h")) != -1)
+	{
+		switch (opt)
+		{
+			case 'l': aem_log_fopen(optarg); break;
+			case 'v': aem_log_level_parse_set(optarg); break;
+			case 'h':
+			default:
+				usage(argv0);
+				exit(1);
+		}
+	}
+
+	argv += optind;
+	argc -= optind;
+
+	if (argc > 1) {
+		usage(argv0);
+		exit(1);
+	}
 
 	FILE *oom_score_adj = fopen("/proc/self/oom_score_adj", "w+");
 	if (oom_score_adj) {
@@ -130,8 +162,8 @@ int main(int argc, char **argv)
 	if (graphics_init() < 0)
 		return 1;
 
-	if (argc > 1) {
-		const char *f = argv[1];
+	if (argc) {
+		const char *f = argv[0];
 
 		if (session_load_path(f))
 			graph_window_new();
