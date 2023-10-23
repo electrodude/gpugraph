@@ -10,27 +10,23 @@
 
 extern struct aem_stringbuf graphics_axes_shader_path;
 
-enum graphics_axes_grid_type
-{
+enum graphics_axes_grid_type {
 	GRID_LIN,
 	GRID_LOG,
 };
 
-struct graphics_axes_axis
-{
+struct graphics_axes_axis {
 	double (*fwd)(double x);
 	double (*rev)(double x); // inverse of fwd: x == fwd(rev(x)) for all x
 };
 
-struct graphics_axes_uniforms
-{
+struct graphics_axes_uniforms {
 	int origin;
 	int scale;
 	int grid_scale;
 	int grid_intensity;
 };
-struct graphics_axes
-{
+struct graphics_axes {
 	// public
 	double xmid;
 	double ymid;

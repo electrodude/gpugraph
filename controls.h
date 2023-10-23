@@ -18,8 +18,7 @@ struct nk_color graphics_color_picker(struct nk_context *ctx, struct nk_color co
 struct nk_rect graphics_util_nk_rect_check(struct nk_rect bounds, struct nk_vec2 size);
 
 
-struct graphics_graph_parameter
-{
+struct graphics_graph_parameter {
 	struct aem_stringbuf name;
 
 	size_t count;
@@ -49,8 +48,7 @@ void graphics_graph_parameter_draw_settings(struct graphics_graph_parameter *par
 
 int graphics_graph_parameter_update_all(float dt);
 
-struct graphics_graph_parameter_view
-{
+struct graphics_graph_parameter_view {
 	struct aem_stringbuf name;
 
 	struct graphics_graph_parameter *param;
@@ -65,16 +63,14 @@ void graphics_graph_parameter_view_free(struct graphics_graph_parameter_view *vi
 
 void graphics_graph_parameter_view_draw(struct graphics_graph_parameter_view *view, struct nk_context *ctx);
 
-enum graphics_graph_action
-{
+enum graphics_graph_action {
 	GRAPHICS_GRAPH_ACTION_NONE = 0,
 	GRAPHICS_GRAPH_ACTION_CLOSE,
 	GRAPHICS_GRAPH_ACTION_MOVE_UP,
 	GRAPHICS_GRAPH_ACTION_MOVE_DOWN,
 };
 
-struct graphics_graph
-{
+struct graphics_graph {
 	struct graphics_window *win;
 
 	struct graphics_graph_parameter_view params;

@@ -8,8 +8,7 @@
 int graphics_init(void);
 int graphics_quit(void);
 
-struct graphics_window
-{
+struct graphics_window {
 	struct nk_glfw nk;
 	struct nk_color background;
 

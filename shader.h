@@ -6,8 +6,7 @@
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 
-struct graphics_shader_program
-{
+struct graphics_shader_program {
 	enum graphics_shader_program_status
 	{
 		GRAPHICS_SHADER_PROGRAM_FAIL = -1,
