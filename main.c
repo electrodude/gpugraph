@@ -142,17 +142,6 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-#if 0
-	FILE *oom_score_adj = fopen("/proc/self/oom_score_adj", "w+");
-	if (oom_score_adj) {
-		// Kill me first.
-		// (Is this necessary?  Does this still actually use tons of ram, or was it just a bug?)
-		fprintf(oom_score_adj, "1000\n");
-		fclose(oom_score_adj);
-		aem_logf_ctx(AEM_LOG_DEBUG, "set own oom_score_adj to 1000");
-	}
-#endif
-
 	// should go somewhere else
 	AEM_LL2_INIT(&graphics_graph_parameters, param);
 	graphics_graph_parameters.id = -1;
