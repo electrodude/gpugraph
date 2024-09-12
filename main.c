@@ -146,9 +146,9 @@ int main(int argc, char **argv)
 	AEM_LL2_INIT(&graphics_graph_parameters, param);
 	graphics_graph_parameters.id = -1;
 
-	// Determine shader path relative to $0
-	aem_stringbuf_reset(&graphics_axes_shader_path);
-	aem_stringbuf_putss(&graphics_axes_shader_path, aem_dirname(aem_stringslice_new_cstr(argv0)));
+	// Determine shader path relative to executable
+	struct aem_stringslice exe_dir = aem_dirname(aem_exe_path(argv0));
+	aem_stringbuf_putss(&graphics_axes_shader_path, exe_dir);
 	aem_stringbuf_putc(&graphics_axes_shader_path, '/');
 
 	AEM_LOG_MULTI(out, AEM_LOG_DEBUG2) {
