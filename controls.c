@@ -525,7 +525,7 @@ void graphics_graph_setup(struct graphics_graph *graph)
 	graphics_window_select(graph->win);
 	graphics_shader_program_dtor(&graph->eqn_shader);
 	graphics_shader_program_init(&graph->eqn_shader);
-	AEM_STRINGBUF_ON_STACK(path, graphics_axes_shader_path.n+16);
+	struct aem_stringbuf path = AEM_STRINGBUF_ALLOCA(graphics_axes_shader_path.n+32);
 	aem_stringbuf_append(&path, &graphics_axes_shader_path);
 	size_t i = path.n;
 	aem_stringbuf_puts(&path, "shader.v.glsl");
